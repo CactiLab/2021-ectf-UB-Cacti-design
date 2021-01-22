@@ -1,9 +1,6 @@
-# 2021 MITRE eCTF Challenge: Secure Common Embedded Wireless Link (SCEWL)
-This repository contains an example reference system for MITRE's 2021 Embedded 
-System CTF (eCTF). This code is incomplete, insecure, and does not meet MITRE
-standards for quality. This code is being provided for educational purposes to
-serve as a simple example that meets the minimum functional requirements for
-the 2021 eCTF. Use this code at your own risk!
+# 2021 MITRE eCTF Challenge - Team Cacti (University at Buffalo): Secure Common Embedded Wireless Link (SCEWL)
+This repository contains team Cacti's (University at Buffalo) system for MITRE's 2021 Embedded 
+System CTF (eCTF). 
 
 ## Getting Started
 Please see the [Getting Started Guide](getting_started.md).
@@ -21,3 +18,6 @@ The example code is structured as follows
 * `socks/` - Directory to hold sockets for the network backend
 * `tools/` - Miscellaneous tools to run and interract with deployments
 * `Makefile` - Root Makefile to build deployments
+
+## Design Doc
+The design doc is in `designdoc/`. 
