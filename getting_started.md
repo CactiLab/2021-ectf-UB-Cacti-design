@@ -1,6 +1,6 @@
 # 2021 MITRE Collegiate eCTF Getting Started
 
-## Version Control on your local computer and MITRE server
+## Version control on your local computer and MITRE server
 
 On your local computer, you can fetch, pull and push as you normally would using `git fetch origin` and `git push origin`.
 If MITRE pushes out updated code, you can fetch this new code using `git fetch mitre`.
@@ -78,7 +78,7 @@ make add_sed DEPLOYMENT=echo SED=echo_client SCEWL_ID=12 NAME=echo_client CUSTOM
 
 These three invocations create first the echo server and then two echo clients.
 Using the below arguments, three Dockerfiles are used to build the echo server and
-then thes echo client. First, `2a_build_cpu.Dockerfile` is used to build the
+then the echo client. First, `2a_build_cpu.Dockerfile` is used to build the
 user code that will run on each CPUs, which are tagged as the containers
 `echo/cpu:echo_server_10`, `echo/cpu:echo_client_11`, and
 `echo/cpu:echo_client_12`. Next, `2b_create_sed_secrets.Dockerfile` is used to
@@ -99,7 +99,7 @@ Arguments:
    defining the SCEWL ID of the echo servers.
 
 Containers in deployment:
- * `echo/sss:latest` - Contiains the SSS, any deployment-wide secrets, and the
+ * `echo/sss:latest` - Contains the SSS, any deployment-wide secrets, and the
    SED-specific secrets for the echo server and clients
  * `echo/controller:base` - Contains a base controller with any common packages
    or libraries pre-built
