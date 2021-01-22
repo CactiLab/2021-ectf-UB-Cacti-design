@@ -1,9 +1,11 @@
 # 2021 MITRE Collegiate eCTF Getting Started
 
-## Git Pull
+## Version Control on your local computer and MITRE server
 
-You can fetch, pull and push as you normally would using `git fetch origin` and `git push origin`.
+On your local computer, you can fetch, pull and push as you normally would using `git fetch origin` and `git push origin`.
 If MITRE pushes out updated code, you can fetch this new code using `git fetch mitre`.
+
+On the MITRE development server, the repo is cloned at `~/2021-ectf-UB-Cacti-design`. A deployment key from the server is added to this repo, so you can pull and fetch on the MITRE server but not push.
 
 ## Requirements
 **You may skip this step if running on MITRE-provided development servers.**
