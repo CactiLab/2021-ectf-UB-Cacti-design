@@ -190,6 +190,8 @@ terminal input.
 After they spin up, if you press `<enter>` on the FAA transceiver, you should see
 a new message with your Boot Reference flag.
 
+If you see `Could not connect to /socks/scewl_bus.sock!` after the first step, try to 1) remove all the sockets `rm -rf ./socks/*`; 2) make sure no container was running when you start.
+
 
 ### Faster method
 Alternatively, you can define each of the static Makefile arguments as environmental variables,
