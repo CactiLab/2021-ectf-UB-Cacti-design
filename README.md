@@ -5,7 +5,7 @@ System CTF (eCTF).
 ## Getting Started
 Please see the [Getting Started Guide](getting_started.md).
 
-Also see the [MITRE kick-off meeting slides](mitredoc/2021.01.20-2021 eCTF Kickoff_PRS.pdf), [rules](mitredoc/2021.01.20-eCTF_Rules_v1.0.pdf), and [code walkthrough](mitredoc/2021.01.27-2021 eCTF Walkthrough.pdf).
+Also see the [MITRE kick-off meeting slides](mitredoc/2021.01.20-2021_eCTF_Kickoff_PRS.pdf), [rules](mitredoc/2021.01.20-eCTF_Rules_v1.0.pdf), and [code walkthrough](mitredoc/2021.01.27-2021_eCTF_Walkthrough.pdf).
 
 ## Project Structure
 The example code is structured as follows
