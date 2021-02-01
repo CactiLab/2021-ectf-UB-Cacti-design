@@ -19,14 +19,14 @@ makefile:
 
 echo/sss:latest - Contiains the SSS, any deployment-wide secrets, and the SED-specific secrets for the echo server and clients
 
-sss.py: define the provisones SEDs, only register the valid SEDs with its hased id
+sss.py: define the provisions SEDs, only register the valid SEDs with its hashed id
 
 sss.Dockerfile:
-Has the secrets folder, we can add secret files here to store the hash or whatever of the provisoned SEDs
+Has the secrets folder, we can add secret files here to store the hash or whatever of the provisioned SEDs
 
 Man in the middle attack
 third party, public key?
-Authenticate the communication between sss and seds, the attackers should not be able to read the message in between.
+Authenticate the communication between sss and SEDs, the attackers should not be able to read the message in between.
 
 what if the message lost.
 a structure to store the message body that contains the sequence number
