@@ -1,3 +1,42 @@
+## 02/01/2021
+
+controller.c/
+send_msg(): header, body
+read_msg():  
+
+sss_register: check scew_id
+
+
+secret.h:
+hashed 
+a structure or file to store provisioned SEDs,
+16 at the same time, at least 256 to a deployment
+
+
+makefile:
+1. add_sed, the SCEWL_ID is the provisioned SEDs, 
+2. deploy: launch the recorded SEDs
+
+echo/sss:latest - Contiains the SSS, any deployment-wide secrets, and the SED-specific secrets for the echo server and clients
+
+sss.py: define the provisones SEDs, only register the valid SEDs with its hased id
+
+sss.Dockerfile:
+Has the secrets folder, we can add secret files here to store the hash or whatever of the provisoned SEDs
+
+Man in the middle attack
+third party, public key?
+Authenticate the communication between sss and seds, the attackers should not be able to read the message in between.
+
+what if the message lost.
+a structure to store the message body that contains the sequence number
+
+typedef struct scewl_body_t {
+  uint8_t sequence_num;
+  /* data follows */
+} scewl_body_t;
+
+
 ## 01/22/2021
 
 Went through the rule doc and some parts of the source code.
