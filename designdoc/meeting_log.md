@@ -5,6 +5,13 @@ This docker file gets invoked when each SED is created using `add_sed` command.
 
 1. When we ran `add_sed` generate symmetric key pair for each one.
 
+Message authentication and encryption: hamc + AES
+
+msg:
+header + body
+          ||
+header + AES(body) + hmac(header + AES(body))
+
 ## 02/01/2021
 
 controller.c/
