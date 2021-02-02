@@ -1,3 +1,10 @@
+## 02/02/2021
+
+Need to change `dockerfiles/2b_create_sed_secrets.Dockerfile` file to generate secrets for each new SED.
+This docker file gets invoked when each SED is created using `add_sed` command.
+
+1. When we ran `add_sed` generate symmetric key pair for each one.
+
 ## 02/01/2021
 
 controller.c/
