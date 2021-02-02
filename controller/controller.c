@@ -259,6 +259,11 @@ int main() {
         // Read message from CPU
         len = read_msg(CPU_INTF, buf, &src_id, &tgt_id, sizeof(buf), 1);
 
+        /*
+        If the outgoing message is for broadcast or targeted transmission, the CIA properties should be maintained.
+        No need to protect messages to SSS or FAA.
+        */
+
         if (tgt_id == SCEWL_BRDCST_ID) {
           handle_brdcst_send(buf, len);
         } else if (tgt_id == SCEWL_SSS_ID) {
@@ -276,6 +281,11 @@ int main() {
       if (intf_avail(RAD_INTF)) {
         // Read message from antenna
         len = read_msg(RAD_INTF, buf, &src_id, &tgt_id, sizeof(buf), 1);
+
+        /*
+        If the incoming message is broadcast or targeted transmission, the CIA properties should be verified.
+        No need to check messages from FAA.
+        */        
 
         if (tgt_id == SCEWL_BRDCST_ID) {
           handle_brdcst_recv(buf, src_id, len);
