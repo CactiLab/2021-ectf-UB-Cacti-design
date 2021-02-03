@@ -104,13 +104,18 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
    \end{itemize}
   \item Message format
   \begin{itemize}
-  \item AES
+  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)}
+  \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
+  \end{itemize}
+  \item Header format
+  \begin{itemize}
+  \item We add a sequence number in the header (\textbf{scewl\_hdr\_t}). We check the sequence number from the message after decryption to prevent reply attack.
   \end{itemize}
  
 \end{itemize}
 \section{Flag Protection}
 
-\subsection{\textsf{D}}
+%\subsection{\textsf{D}}
 
 
 \end{document}
