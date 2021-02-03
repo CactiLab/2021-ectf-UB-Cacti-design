@@ -90,31 +90,6 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 \newcommand{\flagRollback}{\textsf{Rollback}\xspace}
 
 \section{System Overview}
-\begin{itemize}
-  \item Generate Secrets for Each SED:
-  \begin{itemize}
-  \item Before deployment when we add the SEDs with \textbf{add\_sed}  
-      command we generate secrets in for each SED. 
-      \item We will use symmetric key encryption for SED to SED communication (AES).
-      \item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
-      \item Store the keys in the containers \textbf{secret} directory.
-      \item As every SED will have all the key pairs in the network, authenticity of each message can be verified.
-      \item Along with the AES Keys for communication we also generate one key for each SED to do \textbf{hmac} on the header and message body. 
-      \item Here the hmac preserves the integrity of the message header and message body
-  \end{itemize}
-  \item Message format
-  \begin{itemize}
-  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)}
-  \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
-  \end{itemize}
-  \item Header format
-  \begin{itemize}
-  \item We add a sequence number in the header (\textbf{scewl\_hdr\_t}). We check the sequence number from the message after decryption to prevent reply attack.
-  \end{itemize}
-
-\end{itemize}
-
-
 
 The transitions between SEDs will be encrypted.
 Only the SEDs that have the correct key can decrypt the message.
@@ -140,7 +115,7 @@ To read the message, SED\_b uses its private key to decrypt the en\_key to get t
 To authenticate, hmac with size 512 (may change) is chosen.
 The key for hmac is called SED\_hmac\_key.
 
-\subsection{Key Storage and Delivery}
+\subsection{Key generation and storage}
 SSS stores all keys for all SEDs and it also has its own keys.
 
 For each provisioned SEDs, it has its own private key SED\_key which will be used to encrypt the message in transitions.
@@ -151,6 +126,17 @@ The newly inserted SED will broadcast the key to other SEDs to update the key of
 
 When deregistering a SED, the SED will broadcast to other SEDs first, then the SSS will destroy the SED\_key.
 
+  \begin{itemize}
+  \item Before deployment when we add the SEDs with \textbf{add\_sed}  
+      command we generate secrets in for each SED. 
+      \item We will use symmetric key encryption for SED to SED communication (AES).
+      \item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
+      \item Store the keys in the containers \textbf{secret} directory.
+      \item As every SED will have all the key pairs in the network, authenticity of each message can be verified.
+      \item Along with the AES Keys for communication we also generate one key for each SED to do \textbf{hmac} on the header and message body. 
+      \item Here the hmac preserves the integrity of the message header and message body
+  \end{itemize}
+
 \subsection{Secure the Broadcast}
 Whenever the register or deregister happens, this SED will broadcast its status to update the keys stored in other SEDs.
 Implementing the TESLA broadcast authentication protocol is in our work pipeline, too.
@@ -159,6 +145,13 @@ Implementing the TESLA broadcast authentication protocol is in our work pipeline
 The original message format is eight bytes of metadata followed by the frame body.
 We will change the frame body into an encrypted body with AES plus hmac of the header and encrypted body.
 
+  \begin{itemize}
+  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)}
+  \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
+  \end{itemize}
+  \begin{itemize}
+  \item We will add a sequence number in from of the message body. We check the sequence number from the message after decryption to prevent reply attack.
+  \end{itemize}
 
 \subsection{Build Process}
 
