@@ -89,3 +89,5 @@ main
 *.sock
 *.deleteme
 .ssh
+designdoc/SystemDesign.fdb_latexmk
+designdoc/SystemDesign.fls
