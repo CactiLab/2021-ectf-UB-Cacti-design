@@ -112,8 +112,12 @@ Then send the en\_key and ciphertext to SED\_b'.
 To read the message, SED\_b uses its private key to decrypt the en\_key to get the AES key, then encrypt the ciphertext. 
 
 \subsection{Message Authentication}
-To authenticate, hmac with size 512 (may change) is chosen.
-The key for hmac is called SED\_hmac\_key.
+To do authentication, there are two alternations to chosse which we prefer to use AES-GCM.
+\begin{itemize}
+  \item[1] hmac with size 512 (may change).
+  The key for hmac is called SED\_hmac\_key.
+  \item[2] AES with GCM mode.
+\end{itemize}
 
 \subsection{Message Continous}
 Each transition will be tagged with a timestamp (or sequence number inside the message body) to prevent the replay attack.
@@ -137,8 +141,8 @@ In detail:
       \item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
       \item Store the keys in the containers \textbf{secret} directory.
       \item As every SED will have all the key pairs in the network, the authenticity of each message can be verified.
-      \item Along with the AES Keys for communication we also generate one key for each SED to do \textbf{hmac} on the header and message body. 
-      Here the hmac preserves the integrity of the message header and message body
+      % \item Along with the AES Keys for communication we may also generate one key for each SED to do \textbf{hmac} on the header and message body. 
+      % Here the hmac preserves the integrity of the message header and message body.
 \end{itemize}
 
 \subsection{Secure the Broadcast}
@@ -150,7 +154,7 @@ The original message format is eight bytes of metadata followed by the frame bod
 We will change the frame body into an encrypted body with AES plus hmac of the header and encrypted body.
 
   \begin{itemize}
-  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)}
+  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)} or \textbf{header + aes-gcm(header + body)}
   \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
   \end{itemize}
   \begin{itemize}
