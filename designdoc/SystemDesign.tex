@@ -95,13 +95,13 @@ The transitions between SEDs will be encrypted.
 Only the SEDs that have the correct key can decrypt the message.
 All messages in between will be authenticated to check the integrity.
 
-\subsection{Message Encryption}
+\subsection{Message Crypto}
 To encrypt the message, asymmetric encryption (AES) is used.
-Which we chose will be AES with CBC or CTR mode.
+Which we chose will be AES with CBC, CTR, or GCM mode.
 The key is called SED\_aes\_key which is unique for each SED.
 Every SED stores a list of keys for the activated SEDs which will be used to encrypt or decrypt the messages.
 
-\subsubsection{Possible Asymmetric Encrption}
+\subsubsection{Possible Asymmetric Crypto}
 If the performance is good enough, we will additionally implement asymmetric encryption, such as RSA, to encrypt the AES key.
 In this design, each SED has the AES key plus a pair of a public key (SED\_pub\_key) and a private key(SED\_pri\_key).
 Also, each SED stores a list of public keys of the activated SEDs.
@@ -115,30 +115,34 @@ To read the message, SED\_b uses its private key to decrypt the en\_key to get t
 To authenticate, hmac with size 512 (may change) is chosen.
 The key for hmac is called SED\_hmac\_key.
 
-\subsection{Key generation and storage}
-SSS stores all keys for all SEDs and it also has its own keys.
+\subsection{Message Continous}
+Each transition will be tagged with a timestamp (or sequence number inside the message body) to prevent the replay attack.
 
-For each provisioned SEDs, it has its own private key SED\_key which will be used to encrypt the message in transitions.
-To communicate with each other, SEDs will also store other SED\_keys.
+\subsection{Key Generation and Storage}
+SSS maintains all keys for all activated SEDs and its own keys.
+This key list will be shared with each newly registered SED.
 
-When register a SED, the SSS is responsible to generate the SED\_key and update it.
+Like we discussed in previous sections, each provisioned SED also has its own SED\_key dictionary (SED\_hma\_key, SED\_aes\_key additionally with SED\_pub\_key and SED\_pri\_key) which will be used to encrypt and authenticate the message in transitions.
+
+When register a SED, the SSS is responsible to generate the SED\_keys and update it.
 The newly inserted SED will broadcast the key to other SEDs to update the key of the associated ID.
 
-When deregistering a SED, the SED will broadcast to other SEDs first, then the SSS will destroy the SED\_key.
+When deregistering a SED, the SED will broadcast to other SEDs first to delete the SED\_keys, then the SSS will destroy the SED\_keys in its own storage.
 
-  \begin{itemize}
-  \item Before deployment when we add the SEDs with \textbf{add\_sed}  
-      command we generate secrets in for each SED. 
+In detail:
+\begin{itemize}
+  \item When we add the SEDs with \textbf{add\_sed}  
+      command we generate secrets for each SED. 
       \item We will use symmetric key encryption for SED to SED communication (AES).
       \item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
       \item Store the keys in the containers \textbf{secret} directory.
-      \item As every SED will have all the key pairs in the network, authenticity of each message can be verified.
+      \item As every SED will have all the key pairs in the network, the authenticity of each message can be verified.
       \item Along with the AES Keys for communication we also generate one key for each SED to do \textbf{hmac} on the header and message body. 
-      \item Here the hmac preserves the integrity of the message header and message body
-  \end{itemize}
+      Here the hmac preserves the integrity of the message header and message body
+\end{itemize}
 
 \subsection{Secure the Broadcast}
-Whenever the register or deregister happens, this SED will broadcast its status to update the keys stored in other SEDs.
+Whenever the register or deregister happens, this SED will broadcast its status to update the SED\_keys stored in other SEDs.
 Implementing the TESLA broadcast authentication protocol is in our work pipeline, too.
 
 \subsubsection{Message format}
@@ -156,19 +160,24 @@ We will change the frame body into an encrypted body with AES plus hmac of the h
 \subsection{Build Process}
 
   \begin{itemize}
-    \item \textbf{dockerfiles/1a\_create\_sss.Dockerfile}
-    \item \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile}: When "add a SED to the deployment", the build process will generate secrets for each SED.
-    \item \textbf{dockerfiles/2c\_build\_controller.Dockerfile}
-    \item \textbf{dockerfiles/2c\_build\_controller.Dockerfile}
+    \item \textbf{dockerfiles/1a\_create\_sss.Dockerfile}: Generate or destory keys for SEDs registration and deregistration.
+    \item \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile}: Store the key list for actived SEDs.
+    \item \textbf{dockerfiles/2c\_build\_controller.Dockerfile}: Generate any other secrets.
+    \item ...
   \end{itemize}
 
-\subsection{Critical Functions}
-controller.c: line 172
+\section{Implementation}
+\subsection{Critical Functions and Files}
+\begin{itemize}
+  \item sss.py: check the provisoned SEDs.
+  \item controller.c: add message encryption, decryption, and authentication, update keys.
+  \item others are still in progress.
+\end{itemize}
 
 
-\section{Flag Protection}
+% \section{Flag Protection}
 
-\subsection{\textsf{D}}
+% \subsection{\textsf{D}}
 
 
 \end{document}
