@@ -90,7 +90,24 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 \newcommand{\flagRollback}{\textsf{Rollback}\xspace}
 
 \section{System Overview}
-
+\begin{itemize}
+  \item Generate Secrets for Each SED:
+  \begin{itemize}
+   \item Before deployment when we add the SEDs with \textbf{add\_sed}  
+   	command we generate secrets in for each SED. 
+   	\item We will use symmetric key encryption for SED to SED communication (AES).
+   	\item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
+   	\item Store the keys in the containers \textbf{secret} directory.
+   	\item As every SED will have all the key pairs in the network, authenticity of each message can be verified.
+   	\item Along with the AES Keys for communication we also generate one key for each SED to do \textbf{hmac} on the header and message body. 
+   	\item Here the hmac preserves the integrity of the message header and message body
+   \end{itemize}
+  \item Message format
+  \begin{itemize}
+  \item AES
+  \end{itemize}
+ 
+\end{itemize}
 \section{Flag Protection}
 
 \subsection{\textsf{D}}
