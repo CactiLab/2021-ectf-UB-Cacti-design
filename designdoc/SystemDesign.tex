@@ -91,7 +91,12 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 
 \section{System Overview}
 
-The transitions between SEDs will be encrypted.
+There are 2 types of transmissions: 1) targeted transmission; 2) broadcast transmission.
+
+\verb|SSS| generates AES keys for each SED pair beforehand. 
+When each SED registers,
+
+The transmissions between SEDs must be encrypted and authenticated.
 Only the SEDs that have the correct key can decrypt the message.
 All messages in between will be authenticated to check the integrity.
 
