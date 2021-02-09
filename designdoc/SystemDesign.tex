@@ -77,7 +77,7 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 \maketitle
 %\date{}
 
-\renewcommand{\thepage}{System Design, Cacti, UB--\arabic{page}}
+\renewcommand{\thepage}{System Design, Team Cacti, University at Buffalo--\arabic{page}}
 \setcounter{page}{1} \normalsize
 %
 %\renewcommand{\baselinestretch}{1.2}
@@ -89,9 +89,115 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 
 \newcommand{\flagRollback}{\textsf{Rollback}\xspace}
 
-\section{System Overview}
+\section{Introduction}
 
-There are 2 types of transmissions: 1) targeted transmission; 2) broadcast transmission.
+This is the design document of team Cacti for MITRE eCTF 2021.
+
+\subsection{Entities}
+
+A SED (SCEWL-Enabled Devices) is a device with a SCEWL Bus installed. 
+A SED is implemented in 2 parts: 1) CPU, which runs on ARM Cortex-A + Linux (Cannot be changed); 2) 
+Microcontroller, which runs on ARM Cortex-M + Firmware. 
+	
+SED devices include: 
+1) C2 SED (fixed location, unknown \verb|SCEWL_ID|); 
+2) drop-zone SED ((fixed location, unknown \verb|SCEWL_ID|)); 
+3) drone SED (fly to places, unknown \verb|SCEWL_ID|)
+
+The following summarizes the entities in the system.
+
+\begin{itemize}
+	\item A SED CPU works at the application layer. UAV ID is used to identify drone SED CPU at the application layer. UAV ID is a secret like any other data fields at the application layer.
+	
+	\item A SED controller is identified by a \verb|SCEWL_ID|, which is 16 bits in length. Note that a UAV ID is different from a \verb|SCEWL_ID|. The UAV ID is a secret that controlled by the CPU.
+	
+	\item SSS (SCEWL Security Server) manages SEDs through registration
+and deregistration. SSS does not communicate with any SED besides registration
+and deregistration. SSS has a SCEWL ID of 1.
+	
+	\item FAA Transceiver is a device that allows the FAA to communicate with any SED, bypassing the secure SCEWL protocol that we design. FAA Transceiver has a SCEWL ID of 2.
+\end{itemize}
+
+\subsection{Communication Channels}
+
+Following the OSI network model, we divide the network into 3 layers. 
+Layer 1: the physical layer, which include radio and wired. There are implemented by UNIX socks, radio.py, etc.
+Layer 2: a combination of the data link layer, network layer and transport layer, which is implemented at the controller. 
+Our job is to provide security mechanisms at layer 2 before forwarding the message to layer 1 or layer 3.
+Layer 3: the application layer, which is out of our control and implemented at the CPU. The application layer has its own checksum.
+
+This following summarizes the communication channels in the system.
+
+\begin{itemize}
+	\item A SED CPU can send a targeted message to another SED CPU via radio. This message will go through the SED controller. This message must be encrypted and authenticated at controller, so only the targeted SED controller can decrypt the message and any tampering to the message by an attacker can be detected. 
+	
+	\item A SED CPU can send out a broadcast message to all other registered SED CPUs. This message will go through the SED controller. This message must be encrypted and authenticated as well. Only registered SED controller should be able to decrypt this message, and any tampering to the message by an attacker should be detected. 
+	
+	\item In registration and deregistration, a SED only talks with SSS in a wired and secured channel. No further protection is needed for this channel.
+	
+	\item SED CPU uses the FAA channel to talk with us, sending status notifications to us.
+\end{itemize}
+
+\subsection{Message Format}
+
+The physical layer / data link layer frame has a header described in Section 4.6 of Rules.
+The header has 8 bytes.
+It has 2 bytes of magic number, 2 bytes of destination SCEWL ID, 2 bytes of source SCEWL ID, 2 bytes of body length in bytes.
+The header cannot be encrypted, since it is used for routing.
+But, it should be authenticated to prevent tampering.
+
+\section{Attack Models}
+
+The attackers can carry out the following attacks:
+
+\begin{itemize}
+	\item Intercept a targeted message and try to decrypt that, getting the Package Recovery flag.
+
+	\item Intercept a broadcast message and try to decrypt that, getting the UAV ID Recovery flag.	
+	
+	\item Send a targeted message to any drone SED to make it drop a package, getting the Drop Package flag.		
+	
+	\item Replay the redirect message from FAA to make a drove SED fly above its altitude ceiling.
+	
+	\item Extract secret from a crashed drone SED firmware.  
+	
+	\item Spoof an FAA transceiver. But, the controller must pass all FAA messages without authentication.
+\end{itemize}
+
+\section{Our Design}
+
+Each SED controller $k$ has a public key pair ($pk_k, sk_k$).
+Each SED stores all other SEDs' $pk_k$.
+ENC and DEC stands for symmetric encryption and decryption with AES.
+AENC and ADEC stands for asymmetric encryption and decryption with RSA.
+
+\subsection{Targeted Transmission}
+Whenever the SED $a$ sends a targeted message to SED $b$, it first generates an AES key $k_a$ and IV $iv_a$. 
+Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$=ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
+Then, it encrypts $k_a$ with $pk_b$, e.g. AENC$_{pk_b}(k_a)$.
+Then, it sends out $\mathcal{M}=\mathcal{H} || $AENC$_{pk_b}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
+A caveat here is to calculate body length before the AES operation.
+
+Whenever SED $b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is intended for it. If not, discard.
+Then, it uses its private key $sk_b$ to decryt the received ciphertext AES key $k_a$, e.g. $k_a=$ADEC$_{sk_b}($AENC$_{pk_b}(k_a))$.
+Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$=DEC$_{k_a, iv_a}(\mathcal{C})$.
+It compares $\mathcal{T'}$ and $\mathcal{T}$.
+If they do not match, discard.
+Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
+
+\subsection{Broadcast}
+Whenever the SED $a$ sends a broadcast message, it first generates an AES key $k_a$ and IV $iv_a$. 
+Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$=ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
+Then, it encrypts $k_a$ with $pk_b$, e.g. AENC$_{pk_b}(k_a)$.
+Then, it sends out $\mathcal{M}=\mathcal{H} || $AENC$_{pk_b}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
+A caveat here is to calculate body length before the AES operation.
+
+Whenever SED $b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is intended for it. If not, discard.
+Then, it uses its private key $sk_b$ to decryt the received ciphertext AES key $k_a$, e.g. $k_a=$ADEC$_{sk_b}($AENC$_{pk_b}(k_a))$.
+Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$=DEC$_{k_a, iv_a}(\mathcal{C})$.
+It compares $\mathcal{T'}$ and $\mathcal{T}$.
+If they do not match, discard.
+Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
 
 When \verb|SSS| runs for the first time, generates AES keys for each SED pair beforehand. 
 When each SED registers,
