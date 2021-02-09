@@ -118,7 +118,7 @@ Containers in deployment:
 make remove_sed DEPLOYMENT=echo SCEWL_ID=12 NAME=echo_client
 ```
 
-This would remove the second `echo_server` device from the deployment, removing
+This would remove the second `echo_client` device from the deployment, removing
 the CPU and SCEWL Bus Controller images and using `3_remove_sed.Dockerfile` to
 remove any SED secrets from the SSS container and retagging it as `echo/sss:latest`.
 
