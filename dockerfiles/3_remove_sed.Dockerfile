@@ -12,3 +12,4 @@ FROM ${DEPLOYMENT}/sss
 ARG SCEWL_ID
 
 # do whatever you need to remove the SED from the deployment
+RUN create_secrets ${SCEWL_ID} --opt remove_key

@@ -91,3 +91,5 @@ main
 .ssh
 designdoc/SystemDesign.fdb_latexmk
 designdoc/SystemDesign.fls
+designdoc/UB-SystemDesign.pdf
+socks/.gitkeep

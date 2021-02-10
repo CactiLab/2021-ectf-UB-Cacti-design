@@ -1,3 +1,26 @@
+## 02/10/2021
+
+- Key generation and storage
+  
+  1. At 2b dockerfile: run a docker container to generate the RSA key
+     - modified: sss/create_secrets.py
+  
+  2. At 2c: copy the pub and pri to the provisioned seds
+
+  3. At registration, update all other pub keys to SEDs.
+      - modified: sss/sss.py to check the private key for each SED
+      - structure to store all public keys in the memory then delete the file: 128bit  64k
+
+  4. When deleting the SED, remove the public and private key in the sss/secrets file
+
+- Sequence number
+  - 2^32 -> 4 bytes to store a sequence number
+  - each SED maintains the sequence number for each one
+  - the communication between a and b
+    - a retrieves the sequence number, encrypt it.
+    - b receive the msg and check the sequence number
+    - should consider an overflow
+
 ## 02/02/2021
 
 Need to change `dockerfiles/2b_create_sed_secrets.Dockerfile` file to generate secrets for each new SED.

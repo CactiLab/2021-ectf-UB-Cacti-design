@@ -8,6 +8,8 @@
 ARG DEPLOYMENT
 FROM ${DEPLOYMENT}/sss
 
+RUN pip install rsa
+
 ARG SCEWL_ID
 
 # NOTE: only sss/ and its subdirectories in the repo are accessible to this Dockerfile as .
@@ -15,3 +17,5 @@ ARG SCEWL_ID
 #       (e.g. only mapping in the SED directory rather than the entire repo)
 
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
+ADD create_secrets.py sss/create_secrets
+RUN create_secrets ${SCEWL_ID} --opt generate_key

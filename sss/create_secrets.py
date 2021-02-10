@@ -1,13 +1,16 @@
 #!/usr/bin/python3
 
-# 2021 Collegiate eCTF
+# 2021 Team Cacti, University at Buffalo
 # SCEWL Security Server
-# Ben Janis
 #
-# (c) 2021 The Team Cacti, University at Buffalo
-#
+# Description: This file generates the RSA keys for add_SED, and deletes keys for remove_SED command
+# usage: 
+#       create_secrets.py [SCEWL_ID] [opt]
+# input: SCEWL_ID
+# output:  RSA_key pair, AES_key
+# opt: generate_key, remove_key
 
-# registration should attest the SED's private key
+import 
 
 import socket
 import select
