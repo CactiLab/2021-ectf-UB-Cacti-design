@@ -236,24 +236,32 @@ To do authentication, there are two alternations to chosse which we prefer to us
 Each transition will be tagged with a timestamp (or sequence number inside the message body) to prevent the replay attack.
 
 \subsection{Key Generation and Storage}
-SSS maintains all keys for all activated SEDs and its own keys.
-This key list will be shared with each newly registered SED.
+SSS stores all asymmetric keys for all provisioned SEDs. We move those secrets to controller container to be distributed to SED's.
+%This key list will be shared with each newly registered SED.
 
-Like we discussed in previous sections, each provisioned SED also has its own SED\_key dictionary (SED\_hma\_key, SED\_aes\_key additionally with SED\_pub\_key and SED\_pri\_key) which will be used to encrypt and authenticate the message in transitions.
+%Like we discussed in previous sections, each provisioned SED also has its own SED\_key dictionary (SED\_hma\_key, SED\_aes\_key additionally with SED\_pub\_key and SED\_pri\_key) which will be used to encrypt and authenticate the message in transitions.
 
-When register a SED, the SSS is responsible to generate the SED\_keys and update it.
-The newly inserted SED will broadcast the key to other SEDs to update the key of the associated ID.
+%When register a SED, the SSS is responsible to generate the SED\_keys and update it.
+%The newly inserted SED will broadcast the key to other SEDs to update the key of the associated ID.
 
-When deregistering a SED, the SED will broadcast to other SEDs first to delete the SED\_keys, then the SSS will destroy the SED\_keys in its own storage.
-
-In detail:
+%When deregistering a SED, the SED will broadcast to other SEDs first to delete the SED\_keys, then the SSS will destroy the SED\_keys in its own storage.
+Below are the details Key generation for asymmetric encryption:
 \begin{itemize}
   \item When we add the SEDs with \textbf{add\_sed}  
       command we generate secrets for each SED. 
-      \item We will use symmetric key encryption for SED to SED communication (AES).
-      \item We change the  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file to generate the keys for each pair of SEDs to communicate with each other.
-      \item Store the keys in the containers \textbf{secret} directory.
-      \item As every SED will have all the key pairs in the network, the authenticity of each message can be verified.
+      \item A use asymmetric key encryption to encrypt the symmetric key for message encryption.
+      \item We develop \textbf{create\_secrets.py}(with SCEWL\_ID as a parameter) script to generate secrets for each provisioned SED and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
+       \item  Suppose $SED_1$ is added in the deployment with \textbf{add\_sed} command, \textbf{create\_secrets.py} will create private-public key pair ($pk_1$ and $sk_1$).
+      \item Similarly $SED_2$,  $SED_3$ are added in the deployment with \textbf{add\_sed} command, \textbf{create\_secrets.py} will create private-public key pairs ($pk_2$ and $sk_2$), ($pk_3$ and $sk_3$) respectively.
+      \item All these secrets will be kept in the \textbf{secret} directory of SSS container.
+      \item At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
+      \item In the controller implementation, each SED will copy all other's public keys and its own private key to its memory.
+      \item For example,  $SED_1$ will have its own secret key $sk_1$ and all other's public keys $pk_1, pk_2$, and $pk_3$.
+      \item After the build stage, all the key information from the controller container will be removed. 
+      \item To register a SED, the controller needs to send the registration message encrypted with its own private key.
+      \item As the SSS has the public key of that SED, SSS will verify and only allow legitimate SED's registration. 
+      \item While deleting a SED with the \textbf{remove\_SED} command, we remove private and public key pairs from the SSS.
+     % \item As every SED will have all the key pairs in the network, the authenticity of each message can be verified.
       % \item Along with the AES Keys for communication we may also generate one key for each SED to do \textbf{hmac} on the header and message body. 
       % Here the hmac preserves the integrity of the message header and message body.
 \end{itemize}
@@ -270,9 +278,56 @@ We will change the frame body into an encrypted body with AES plus hmac of the h
   \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)} or \textbf{header + aes-gcm(header + body)}
   \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
   \end{itemize}
+  \subsubsection{Prevent Replay Attack}
+  We will add a sequence number in front of the message body. We check the sequence number for each message to prevent a reply attack.
+  In details:
   \begin{itemize}
-  \item We will add a sequence number in from of the message body. We check the sequence number from the message after decryption to prevent reply attack.
-  \end{itemize}
+  \item Suppose there are 5 ($a, b, c, d, e$) SED's in the system.
+  \item Each SED maintains a table containing other SED's sequence numbers with default value zero.
+  \item  Example: At the beginning for SED $b$:
+
+    \begin{center}
+  \begin{tabular}{ |c|c| } 
+   \hline
+  \textbf{SED ID} & \textbf{Sequence Number} \\
+ 	\hline \hline
+ 	a & 0 \\ 
+	c & 0  \\ 
+ 	d & 0 \\ 
+ 	e & 0 \\ 
+	 \hline
+\end{tabular}
+\end{center}
+  \item Suppose SED $a$ communicates with the SED $b$, $a$ sends its corresponding sequence of b($0$) in the message. After decrypting the message SED $b$ checks with the SED $a$ value if it's less or equal to the received number then it's a legit message. 
+  \item Then both SED $a$ and $b$ increments their corresponding sequence number by one.
+  \item After communication table for SED $b$:
+    \begin{center}
+  \begin{tabular}{ |c|c| } 
+   \hline
+  \textbf{SED ID} & \textbf{Sequence Number} \\
+ 	\hline \hline
+ 	a & 1 \\ 
+	c & 0  \\ 
+ 	d & 0 \\ 
+ 	e & 0 \\ 
+	 \hline
+\end{tabular}
+\end{center}
+\item Similarly, suppose SED $b$ twice communicates with SED $c$ and once with SED $e$. Now the table for SED $b$ should be:
+   \begin{center}
+  \begin{tabular}{ |c|c| } 
+   \hline
+  \textbf{SED ID} & \textbf{Sequence Number} \\
+ 	\hline \hline
+ 	a & 1 \\ 
+	c & 2  \\ 
+ 	d & 0 \\ 
+ 	e & 1 \\ 
+	 \hline
+\end{tabular}
+\end{center}
+    \end{itemize}
+
 
 \subsection{Build Process}
 
