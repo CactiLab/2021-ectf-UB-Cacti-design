@@ -187,24 +187,40 @@ It compares $\mathcal{T'}$ and $\mathcal{T}$.
 If they do not match, discard.
 Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
 
+
+\subsection{Broadcast Transmission}
+
+Whenever the SED $a$ sends a targeted message to SED $b$, it first generates an AES key $k_a$ and IV $iv_a$. 
+Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$=ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
+Then, it encrypts $k_a$ with $pk_b$, e.g. AENC$_{pk_b}(k_a)$.
+Then, it sends out $\mathcal{M}=\mathcal{H} || $AENC$_{pk_b}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
+A caveat here is to calculate body length before the AES operation.
+
+Whenever SED $b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is intended for it. If not, discard.
+Then, it uses its private key $sk_b$ to decryt the received ciphertext AES key $k_a$, e.g. $k_a=$ADEC$_{sk_b}($AENC$_{pk_b}(k_a))$.
+Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$=DEC$_{k_a, iv_a}(\mathcal{C})$.
+It compares $\mathcal{T'}$ and $\mathcal{T}$.
+If they do not match, discard.
+Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
+
 \subsection{Key Generation and Storage}
 
 Below are the details Key generation for asymmetric encryption:
 \begin{itemize}
   % \item[Step1.]
-  \item[Step1. ] When adding SED$_k$ to the deployment, SSS generates a pair of keys ($pk_k$, $sk_k$) for it.
-  Stores as \verb|SCEWL_ID|.$pub$, \verb|SCEWL_ID|.$pri$
-  \item[Step2. ] When building controller for SED$_k$, the key pair ($pk_k$, $sk_k$) will be copied to this controller container.
-  SSS only remain the $pk_k$. 
-  \item[Step3. ] At registration stage, the SED$_k$ uses its own private key ($sk_k$) to encrypt the registration message and send to the SSS.
+  \item[Step 1.] When adding SED$_k$ to a deployment, SSS generates a pair of RSA keys ($pk_k$, $sk_k$) for SED$_k$.
+SSS stores the keys in files as \verb|SCEWL_ID|.$pub$, \verb|SCEWL_ID|.$pri$ at its local filesystem.
+  \item[Step 2.] When building controller for SED$_k$, the key pair ($pk_k$, $sk_k$) will be copied to this controller container.
+  %SSS only remain the $pk_k$. 
+  \item[Step 3.] At registration stage, the SED$_k$ uses its own private key ($sk_k$) to encrypt the registration message and send to the SSS.
   If the \verb|SCEWL_ID| is in our provisoned SED list, SSS will use the associated public key ($pk_k$) to decrypt this message and finish the registration for it.
   After registration is done, all public keys for other SEDs will be copied to the registered one.
-  \item[Step4. ] When removing SED$_k$, SSS will delete $pk_k$ (SSS already deleted $sk_k$ at step 2).
+  \item[Step 4.] When removing SED$_k$, SSS will delete $pk_k$ (SSS already deleted $sk_k$ at step 2).
 \end{itemize}
 
 In detail:
 \begin{itemize}
-      \item We develop \textbf{create\_secrets.py}(with SCEWL\_ID as a parameter) script to generate key pair ($pk_1$ and $sk_1$) for each provisioned SED and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
+      \item We develop \textbf{create\_secrets.py} (with SCEWL\_ID as a parameter) script to generate key pair ($pk_k$ and $sk_k$) for each provisioned SED$_k$ and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
 
       \item All these secrets will be kept in the \textbf{secret} directory of SSS container.
       \item At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
@@ -232,7 +248,7 @@ In detail:
   In details:
   \begin{itemize}
   \item Suppose there are 5 ($a, b, c, d, e$) SED's in the system.
-  \item Each SED maintains a table containing other SED's sequence numbers with default value zero.
+  \item Each SED maintains a table containing other SED's sequence numbers with initial value of zero.
   \item  Example: At the beginning for SED $b$:
 
     \begin{center}
@@ -247,7 +263,7 @@ In detail:
 	 \hline
 \end{tabular}
 \end{center}
-  \item Suppose SED $a$ communicates with the SED $b$, $a$ sends its corresponding sequence of b($0$) in the message. After decrypting the message SED $b$ checks with the SED $a$ value if it's less or equal to the received number then it's a legit message. 
+  \item Suppose SED$_a$ communicates with the SED $b$, $a$ sends its corresponding sequence of b($0$) in the message. After decrypting the message SED $b$ checks with the SED $a$ value if it's less or equal to the received number then it's a legit message. 
   \item Then both SED $a$ and $b$ increments their corresponding sequence number by one.
   \item After communication table for SED $b$:
     \begin{center}
