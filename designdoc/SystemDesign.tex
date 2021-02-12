@@ -167,7 +167,7 @@ The attackers can carry out the following attacks:
 \end{itemize}
 
 \section{Our Design}
-
+% SSS stores all public keys ($pk_k$) of all provisioned SEDs. 
 Each SED controller $k$ has a public key pair ($pk_k, sk_k$).
 Each SED stores all other SEDs' $pk_k$.
 ENC and DEC stands for symmetric encryption and decryption with AES.
@@ -187,98 +187,46 @@ It compares $\mathcal{T'}$ and $\mathcal{T}$.
 If they do not match, discard.
 Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
 
-\subsection{Broadcast}
-Whenever the SED $a$ sends a broadcast message, it first generates an AES key $k_a$ and IV $iv_a$. 
-Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$=ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
-Then, it encrypts $k_a$ with $pk_b$, e.g. AENC$_{pk_b}(k_a)$.
-Then, it sends out $\mathcal{M}=\mathcal{H} || $AENC$_{pk_b}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
-A caveat here is to calculate body length before the AES operation.
-
-Whenever SED $b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is intended for it. If not, discard.
-Then, it uses its private key $sk_b$ to decryt the received ciphertext AES key $k_a$, e.g. $k_a=$ADEC$_{sk_b}($AENC$_{pk_b}(k_a))$.
-Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$=DEC$_{k_a, iv_a}(\mathcal{C})$.
-It compares $\mathcal{T'}$ and $\mathcal{T}$.
-If they do not match, discard.
-Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
-
-When \verb|SSS| runs for the first time, generates AES keys for each SED pair beforehand. 
-When each SED registers,
-
-The transmissions between SEDs must be encrypted and authenticated.
-Only the SEDs that have the correct key can decrypt the message.
-All messages in between will be authenticated to check the integrity.
-
-\subsection{Message Crypto}
-To encrypt the message, asymmetric encryption (AES) is used.
-Which we chose will be AES with CBC, CTR, or GCM mode.
-The key is called SED\_aes\_key which is unique for each SED.
-Every SED stores a list of keys for the activated SEDs which will be used to encrypt or decrypt the messages.
-
-\subsubsection{Possible Asymmetric Crypto}
-If the performance is good enough, we will additionally implement asymmetric encryption, such as RSA, to encrypt the AES key.
-In this design, each SED has the AES key plus a pair of a public key (SED\_pub\_key) and a private key(SED\_pri\_key).
-Also, each SED stores a list of public keys of the activated SEDs.
-
-To send a message, SED\_a will use the AES key to encrypt the message body first (ciphertext), then use the SED\_b's public key to encrypt the AES key (en\_key).
-Then send the en\_key and ciphertext to SED\_b'.
-
-To read the message, SED\_b uses its private key to decrypt the en\_key to get the AES key, then encrypt the ciphertext. 
-
-\subsection{Message Authentication}
-To do authentication, there are two alternations to chosse which we prefer to use AES-GCM.
-\begin{itemize}
-  \item[1] hmac with size 512 (may change).
-  The key for hmac is called SED\_hmac\_key.
-  \item[2] AES with GCM mode.
-\end{itemize}
-
-\subsection{Message Continous}
-Each transition will be tagged with a timestamp (or sequence number inside the message body) to prevent the replay attack.
-
 \subsection{Key Generation and Storage}
-SSS stores all asymmetric keys for all provisioned SEDs. We move those secrets to controller container to be distributed to SED's.
-%This key list will be shared with each newly registered SED.
 
-%Like we discussed in previous sections, each provisioned SED also has its own SED\_key dictionary (SED\_hma\_key, SED\_aes\_key additionally with SED\_pub\_key and SED\_pri\_key) which will be used to encrypt and authenticate the message in transitions.
-
-%When register a SED, the SSS is responsible to generate the SED\_keys and update it.
-%The newly inserted SED will broadcast the key to other SEDs to update the key of the associated ID.
-
-%When deregistering a SED, the SED will broadcast to other SEDs first to delete the SED\_keys, then the SSS will destroy the SED\_keys in its own storage.
 Below are the details Key generation for asymmetric encryption:
 \begin{itemize}
-  \item When we add the SEDs with \textbf{add\_sed}  
-      command we generate secrets for each SED. 
-      \item A use asymmetric key encryption to encrypt the symmetric key for message encryption.
-      \item We develop \textbf{create\_secrets.py}(with SCEWL\_ID as a parameter) script to generate secrets for each provisioned SED and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
-       \item  Suppose $SED_1$ is added in the deployment with \textbf{add\_sed} command, \textbf{create\_secrets.py} will create private-public key pair ($pk_1$ and $sk_1$).
-      \item Similarly $SED_2$,  $SED_3$ are added in the deployment with \textbf{add\_sed} command, \textbf{create\_secrets.py} will create private-public key pairs ($pk_2$ and $sk_2$), ($pk_3$ and $sk_3$) respectively.
+  \item[Step1. ] When adding SED$_k$ to the deployment, SSS generates a pair of keys ($pk_k$, $sk_s$) for it.
+  Stores as \verb|SCEWL_ID|.$pub$, \verb|SCEWL_ID|.$pri$
+  \item[Step2. ] When building controller for SED$_k$, the key pair ($pk_k$, $sk_s$) will be copied to this controller container.
+  SSS only remain the $pk_k$. 
+  \item[Step3. ] At registration stage, the SED$_k$ uses its own private key ($sk_k$) to send the registration message to SSS.
+  If the \verb|SCEWL_ID| is in our provisoned SED list, SSS will use the associated public key ($pk_k$) to decrypt this message and finish the registration for it.
+  After registration is done, all public keys for other SEDs will be copied to the registered one.
+  \item[Step4. ] When removing SED$_k$, SSS will delete $pk_k$ (SSS already deleted $sk_k$ at step 2).
+\end{itemize}
+
+In detail:
+\begin{itemize}
+      \item We develop \textbf{create\_secrets.py}(with SCEWL\_ID as a parameter) script to generate key pair ($pk_1$ and $sk_1$) for each provisioned SED and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
+
       \item All these secrets will be kept in the \textbf{secret} directory of SSS container.
       \item At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
-      \item In the controller implementation, each SED will copy all other's public keys and its own private key to its memory.
-      \item For example,  $SED_1$ will have its own secret key $sk_1$ and all other's public keys $pk_1, pk_2$, and $pk_3$.
-      \item After the build stage, all the key information from the controller container will be removed. 
-      \item To register a SED, the controller needs to send the registration message encrypted with its own private key.
-      \item As the SSS has the public key of that SED, SSS will verify and only allow legitimate SED's registration. 
-      \item While deleting a SED with the \textbf{remove\_SED} command, we remove private and public key pairs from the SSS.
+      \item We modify the \textbf{sss.py} to verify the provioned SEDs and send out the public keys of other SED when registration.
      % \item As every SED will have all the key pairs in the network, the authenticity of each message can be verified.
       % \item Along with the AES Keys for communication we may also generate one key for each SED to do \textbf{hmac} on the header and message body. 
       % Here the hmac preserves the integrity of the message header and message body.
 \end{itemize}
 
-\subsection{Secure the Broadcast}
-Whenever the register or deregister happens, this SED will broadcast its status to update the SED\_keys stored in other SEDs.
-Implementing the TESLA broadcast authentication protocol is in our work pipeline, too.
+% \subsection{Secure the Broadcast}
+% Whenever the register or deregister happens, this SED will broadcast its status to update the SED\_keys stored in other SEDs.
+% Implementing the TESLA broadcast authentication protocol is in our work pipeline, too.
 
-\subsubsection{Message format}
-The original message format is eight bytes of metadata followed by the frame body.
-We will change the frame body into an encrypted body with AES plus hmac of the header and encrypted body.
+% \subsubsection{Message format}
+% The original message format is eight bytes of metadata followed by the frame body.
+% We will change the frame body into an encrypted body with AES plus hmac of the header and encrypted body.
 
-  \begin{itemize}
-  \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)} or \textbf{header + aes-gcm(header + body)}
-  \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
-  \end{itemize}
-  \subsubsection{Prevent Replay Attack}
+%   \begin{itemize}
+%   \item In case of SED to SED communication: \textbf{header + hmac(header + AES (body)) + AES(body)} or \textbf{header + aes-gcm(header + body)}
+%   \item In case of incoming message from FAA transceiver we receive the message as given format: \textbf{header + body}
+%   \end{itemize}
+
+  \subsection{Prevent Replay Attack}
   We will add a sequence number in front of the message body. We check the sequence number for each message to prevent a reply attack.
   In details:
   \begin{itemize}
