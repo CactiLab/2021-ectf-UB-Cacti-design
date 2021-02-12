@@ -244,12 +244,13 @@ In detail:
 %   \end{itemize}
 
   \subsection{Prevent Replay Attack}
-  We will add a sequence number in front of the message body. We check the sequence number for each message to prevent a reply attack.
-  In details:
+  For communication between the SEDs, a sequence number of 4 bytes is added in front of the message body. Each SED maintains a paired sequence number table in memory of other SEDs.To prevent the replay attack, receiver SED needs to cross-check between the received value from the message and the value from the table.
+ 
+Explanation:
   \begin{itemize}
-  \item Suppose there are 5 ($a, b, c, d, e$) SED's in the system.
-  \item Each SED maintains a table containing other SED's sequence numbers with initial value of zero.
-  \item  Example: At the beginning for SED $b$:
+  \item Suppose there are 5 ($a, b, c, d, e$) SEDs in the system.
+  \item Each SED maintains a paired sequence number table of other SEDs with the initial value of zero.
+  \item  Example: At the beginning sequence table for SED $b$:
 
     \begin{center}
   \begin{tabular}{ |c|c| } 
@@ -263,9 +264,14 @@ In detail:
 	 \hline
 \end{tabular}
 \end{center}
-  \item Suppose SED$_a$ communicates with the SED $b$, $a$ sends its corresponding sequence of b($0$) in the message. After decrypting the message SED $b$ checks with the SED $a$ value if it's less or equal to the received number then it's a legit message. 
-  \item Then both SED $a$ and $b$ increments their corresponding sequence number by one.
-  \item After communication table for SED $b$:
+Here each row represents a paired sequence number.
+The sequence number of $a$ here signifies the sequence number for communication between the SED pair $(a,b)$. SED $a$ denotes the same pair as $b$ in its table.
+
+  \item Suppose SED$_a$ communicates with the SED $b$. SED $a$ gets the 
+  paired ($a$,$b$) value from its table, increments it by one, and then adds it in front of the message body. 
+  \item After successful decryption of the message, SED $b$ checks the received sequence number from the message and ($b$, $a$) paired sequence number from it's table in memory.
+  \item The received message is valid only if the message sequence number is greater than the sequence number from the table. For a valid message, the receiver SED $b$ copies the sequence from the message to it's table.
+  \item After communication sequence table for SED $b$:
     \begin{center}
   \begin{tabular}{ |c|c| } 
    \hline
