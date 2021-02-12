@@ -218,9 +218,9 @@ Below are the details Key generation for asymmetric encryption:
   At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
 
   \item[Step 3.] At registration stage, the SED$_k$ uses its own private key $sk_k$ to sign the registration message and send it to the SSS.
-  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{B})$.
-  If $k$ is in our provisoned SED list, SSS will use the associated public key $pk_k$ to verify this message, e.g. $\mathcal{M'}$ = VER$_{pk_k}$(SIG$_{sk_k}(\mathcal{B})$) and finish the registration for SED$_k$.
-  Upon a successful verification, SSS adds $k$ to a delegted list and sends the public keys for all other SEDs to SED$_k$.
+  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H})$.
+  If $k$ is in our provisoned SED list, SSS will use the associated public key $pk_k$ to verify this message, e.g. $\mathcal{H'}$ = VER$_{pk_k}$(SIG$_{sk_k}(\mathcal{H})$).
+  Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finish the registration for SED$_k$, adds $k$ to a delegted list, and sends the public keys of all other SEDs to SED$_k$.
   
   We modify the \textbf{sss.py} to verify the provioned SEDs and send out the public keys of other SED when registration.
 
