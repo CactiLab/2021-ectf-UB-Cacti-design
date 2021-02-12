@@ -195,7 +195,7 @@ Below are the details Key generation for asymmetric encryption:
   Stores as \verb|SCEWL_ID|.$pub$, \verb|SCEWL_ID|.$pri$
   \item[Step2. ] When building controller for SED$_k$, the key pair ($pk_k$, $sk_s$) will be copied to this controller container.
   SSS only remain the $pk_k$. 
-  \item[Step3. ] At registration stage, the SED$_k$ uses its own private key ($sk_k$) to send the registration message to SSS.
+  \item[Step3. ] At registration stage, the SED$_k$ uses its own private key ($sk_k$) to encrypt the registration message and send to the SSS.
   If the \verb|SCEWL_ID| is in our provisoned SED list, SSS will use the associated public key ($pk_k$) to decrypt this message and finish the registration for it.
   After registration is done, all public keys for other SEDs will be copied to the registered one.
   \item[Step4. ] When removing SED$_k$, SSS will delete $pk_k$ (SSS already deleted $sk_k$ at step 2).
