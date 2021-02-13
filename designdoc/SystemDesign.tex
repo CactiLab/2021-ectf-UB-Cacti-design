@@ -196,7 +196,7 @@ Then, it encrypts $k_a$ with its private key $sk_a$, e.g. AENC$_{sk_a}(k_a)$.
 Then, it sends out $\mathcal{M}$ = $\mathcal{H} || $AENC$_{sk_a}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
 A caveat here is to calculate body length before the AES operation.
 
-Whenever SED$_b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is a broadcast.
+Whenever SED$_b$ receives a message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is a broadcast.
 Then, it uses SED$_a$'s public key $pk_b$ to decrypt the received ciphertext AES key $k_a$, e.g. $k_a$ = ADEC$_{pk_a}($AENC$_{sk_a}(k_a))$.
 Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$ = DEC$_{k_a, iv_a}(\mathcal{C})$.
 It compares $\mathcal{T'}$ and $\mathcal{T}$.
