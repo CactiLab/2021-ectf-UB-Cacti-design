@@ -174,7 +174,7 @@ ENC and DEC stands for symmetric encryption and decryption with AES.
 AENC and ADEC stands for asymmetric encryption and decryption with RSA.
 
 \subsection{Targeted Transmission}
-Whenever the SED$_a$ sends a targeted message to SED $b$, it first generates an AES key $k_a$ and IV $iv_a$. 
+Whenever the SED$_a$ sends a targeted message to SED$_b$, it first generates an AES key $k_a$ and IV $iv_a$. 
 Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$ = ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
 Then, it encrypts $k_a$ with $pk_b$, e.g. $\mathcal{E}=$AENC$_{pk_b}(k_a)$.
 Then, it sends out $\mathcal{M}$ = $\mathcal{H} || \mathcal{E}||iv_a||\mathcal{T}||\mathcal{C}$.
