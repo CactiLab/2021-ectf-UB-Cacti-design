@@ -63,7 +63,7 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 %==============================================================================
 
 \title{Secure UAV Communications System Design}
-\author{Team Cacti, University at Buffalo}
+\author{MITRE eCTF 2021\\Team Cacti, University at Buffalo}
 \date{}
 
 
@@ -91,18 +91,9 @@ top=2.5cm, bottom=2.6cm, left=2.58cm, right=2.53cm]{geometry}
 
 \section{Introduction}
 
-This is the design document of team Cacti for MITRE eCTF 2021.
+This section presents the entities and communication channels in the system.
 
 \subsection{Entities}
-
-A SED (SCEWL-Enabled Devices) is a device with a SCEWL Bus installed. 
-A SED is implemented in 2 parts: 1) CPU, which runs on ARM Cortex-A + Linux (Cannot be changed); 2) 
-Microcontroller, which runs on ARM Cortex-M + Firmware. 
-	
-SED devices include: 
-1) C2 SED (fixed location, unknown \verb|SCEWL_ID|); 
-2) drop-zone SED ((fixed location, unknown \verb|SCEWL_ID|)); 
-3) drone SED (fly to places, unknown \verb|SCEWL_ID|)
 
 The following summarizes the entities in the system.
 
@@ -110,6 +101,15 @@ The following summarizes the entities in the system.
 	\item A SED CPU works at the application layer. UAV ID is used to identify drone SED CPU at the application layer. UAV ID is a secret like any other data fields at the application layer.
 	
 	\item A SED controller is identified by a \verb|SCEWL_ID|, which is 16 bits in length. Note that a UAV ID is different from a \verb|SCEWL_ID|. The UAV ID is a secret that controlled by the CPU.
+
+A SED (SCEWL-Enabled Devices) is a device with a SCEWL Bus installed. 
+A SED is implemented in 2 parts: 1) CPU, which is an userland application running on  ARM Cortex-A and Linux. The application cannot be modified; 2) 
+Microcontroller, which is bare-metal firmware running on ARM Cortex-M. 
+	
+SEDs are identified with \verb|SCEWL_ID|s. At the design stage, the \verb|SCEWL_ID|s are unknown. The SED devices include: 
+1) A Command and Control (C2) SED at a fixed location; 
+2) many drop-zone SEDs at fixed locations; 
+3) many drone SEDs that fly to places.
 	
 	\item SSS (SCEWL Security Server) manages SEDs through registration
 and deregistration. SSS does not communicate with any SED besides registration
@@ -140,7 +140,7 @@ This following summarizes the communication channels in the system.
 
 \subsection{Message Format}
 
-The physical layer / data link layer frame has a header described in Section 4.6 of Rules.
+The layer 2 frame has a header described in Section 4.6 of Rules.
 The header has 8 bytes.
 It has 2 bytes of magic number, 2 bytes of destination SCEWL ID, 2 bytes of source SCEWL ID, 2 bytes of body length in bytes.
 The header cannot be encrypted, since it is used for routing.
