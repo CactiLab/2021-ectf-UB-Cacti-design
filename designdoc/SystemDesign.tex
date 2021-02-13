@@ -176,8 +176,8 @@ AENC and ADEC stands for asymmetric encryption and decryption with RSA.
 \subsection{Targeted Transmission}
 Whenever the SED$_a$ sends a targeted message to SED $b$, it first generates an AES key $k_a$ and IV $iv_a$. 
 Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$ = ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
-Then, it encrypts $k_a$ with $pk_b$, e.g. AENC$_{pk_b}(k_a)$.
-Then, it sends out $\mathcal{M}$ = $\mathcal{H} || $AENC$_{pk_b}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
+Then, it encrypts $k_a$ with $pk_b$, e.g. $\mathcal{E}=$AENC$_{pk_b}(k_a)$.
+Then, it sends out $\mathcal{M}$ = $\mathcal{H} || \mathcal{E}||iv_a||\mathcal{T}||\mathcal{C}$.
 A caveat here is to calculate body length before the AES operation.
 
 Whenever SED$_b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is intended for it. If not, discard.
@@ -192,8 +192,8 @@ Otherwise, $\mathcal{C'}=\mathcal{H}||\mathcal{B}$.
 
 When the SED$_a$ does a broadcast, it first generates an AES key $k_a$ and IV $iv_a$. 
 Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$ = ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
-Then, it encrypts $k_a$ with its private key $sk_a$, e.g. AENC$_{sk_a}(k_a)$.
-Then, it sends out $\mathcal{M}$ = $\mathcal{H} || $AENC$_{sk_a}(k_a)||iv_a||\mathcal{T}||\mathcal{C}$.
+Then, it encrypts $k_a$ with its private key $sk_a$, e.g. $\mathcal{E}$=AENC$_{sk_a}(k_a)$.
+Then, it sends out $\mathcal{M}$ = $\mathcal{H} || \mathcal{E}||iv_a||\mathcal{T}||\mathcal{C}$.
 A caveat here is to calculate body length before the AES operation.
 
 Whenever SED$_b$ receives a targeted message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is a broadcast.
