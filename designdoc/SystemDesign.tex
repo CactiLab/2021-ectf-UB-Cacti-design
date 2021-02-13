@@ -197,7 +197,7 @@ Then, it sends out $\mathcal{M}$ = $\mathcal{H} || $AENC$_{sk_a}(k_a)||iv_a||\ma
 A caveat here is to calculate body length before the AES operation.
 
 Whenever SED$_b$ receives a message $\mathcal{M}$, it first checks the $\mathcal{H}$ to see if the message is a broadcast.
-Then, it uses SED$_a$'s public key $pk_b$ to decrypt the received ciphertext AES key $k_a$, e.g. $k_a$ = ADEC$_{pk_a}($AENC$_{sk_a}(k_a))$.
+Then, it uses SED$_a$'s public key $pk_a$ to decrypt the received ciphertext AES key $k_a$, e.g. $k_a$ = ADEC$_{pk_a}($AENC$_{sk_a}(k_a))$.
 Then, it uses $k_a, iv_a$ to decrypt and authenticate the message, e.g. $\mathcal{C'}, \mathcal{T'}$ = DEC$_{k_a, iv_a}(\mathcal{C})$.
 It compares $\mathcal{T'}$ and $\mathcal{T}$.
 If they do not match, discard.
@@ -218,7 +218,7 @@ Below are the details Key generation for asymmetric encryption:
   At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
 
   \item[Step 3.] At registration stage, the SED$_k$ uses its own private key $sk_k$ to sign the registration message and send it to the SSS.
-  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the register operation here).
+  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the register operation).
   If $k$ is in our provisoned SED list, SSS will use the associated public key $pk_k$ to verify this message, e.g. $\mathcal{H'}, \mathcal{B'}$ = VER$_{pk_k}$(SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$).
   Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finish the registration for SED$_k$, adds $k$ to a dedicated list, and sends the public keys of all other SEDs to SED$_k$.
   
@@ -226,7 +226,7 @@ Below are the details Key generation for asymmetric encryption:
 
   \item[Step 4.] The deregistration stage is similar to registration.
   SED$_k$ will delete other public keys first, then uses its own private key $sk_k$ to sign the deregistration message and send it to the SSS.
-  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the deregister operation here).
+  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the deregister operation).
   If $k$ is in our provisoned SED list and in our dedicated list, SSS will use the associated public key $pk_k$ to verify this message.
   Upon a successful verification, SSS will remove SED$_k$ from the dedicated list.
 
