@@ -241,56 +241,69 @@ Below are the details Key generation for asymmetric encryption:
 \end{itemize}
 
   \subsection{Prevent Replay Attack}
-  For communication between the SEDs, a sequence number of 4 bytes is added in front of the message body. Each SED maintains a paired sequence number table in memory of other SEDs.To prevent the replay attack, receiver SED needs to cross-check between the received value from the message and the value from the table.
+  For communication between the SEDs, a sequence number of 4 bytes is added in front of the message body. Each SED maintains a pair of sequence number table in memory of other SEDs. Two sequence numbers represent bidirectional transmission between two SEDs. To prevent the replay attack, receiver SED needs to cross-check between the received value from the message and the value from the table.
  
 Explanation:
   \begin{itemize}
   \item Suppose there are 5 ($a, b, c, d, e$) SEDs in the system.
-  \item Each SED maintains a paired sequence number table of other SEDs with the initial value of zero.
+  \item Each SED maintains a pair of sequence number table of other SEDs with the initial value of zero.
   \item  Example: At the beginning sequence table for SED $b$:
 
     \begin{center}
-  \begin{tabular}{ |c|c| } 
+  \begin{tabular}{ |c|c|c| } 
    \hline
-  \textbf{SED ID} & \textbf{Sequence Number} \\
+  \textbf{SED ID} & \textbf{SQ\_send} & \textbf{SQ\_receive}\\
  	\hline \hline
- 	a & 0 \\ 
-	c & 0  \\ 
- 	d & 0 \\ 
- 	e & 0 \\ 
+ 	a & 0 & 0 \\ 
+	c & 0 & 0 \\ 
+ 	d & 0 & 0 \\ 
+ 	e & 0 & 0 \\ 
 	 \hline
 \end{tabular}
 \end{center}
-Here each row represents a paired sequence number.
-The sequence number of $a$ here signifies the sequence number for communication between the SED pair $(a,b)$. SED $a$ denotes the same pair as $b$ in its table.
+Here each row represents a pair of sequence number.
+Row $a$ here signifies the sequence number for communication between the SED pair $(a,b)$. $SQ\_send$ is number of communications from SED $b$  to SED $a$. $SQ\_receive$ denotes number of messages that $b$ received from $a$. SED $a$ will have the same values in opposite position.
 
   \item Suppose SED$_a$ communicates with the SED $b$. SED $a$ gets the 
-  paired ($a$,$b$) value from its table, increments it by one, and then adds it in front of the message body. 
-  \item After successful decryption of the message, SED $b$ checks the received sequence number from the message and ($b$, $a$) paired sequence number from it's table in memory.
-  \item The received message is valid only if the message sequence number is greater than the sequence number from the table. For a valid message, the receiver SED $b$ copies the sequence from the message to it's table.
+   $SQ\_send$ value of SED$_b$ from its table, increments it by one, and then adds it in front of the message body. 
+  \item After successful decryption of the message, SED$_b$ checks the received sequence number from the message and $SQ\_receive$ sequence number of SED$_a$ from it's table in memory.
+  \item The received message is valid only if the message sequence number is greater than the sequence number from the table. For a valid message, the receiver SED $b$ copies the sequence from the message to it's table. So, the  $SQ\_send$ for $b$ in SED$_a$'s table will be the same as $SQ\_receive$ for $a$ in the SED$_b$'s table.
   \item After communication sequence table for SED $b$:
     \begin{center}
-  \begin{tabular}{ |c|c| } 
+  \begin{tabular}{ |c|c|c| } 
    \hline
-  \textbf{SED ID} & \textbf{Sequence Number} \\
+  \textbf{SED ID} & \textbf{SQ\_send} & \textbf{SQ\_receive}\\
  	\hline \hline
- 	a & 1 \\ 
-	c & 0  \\ 
- 	d & 0 \\ 
- 	e & 0 \\ 
+ 	a & 0 & 1 \\ 
+	c & 0 & 0 \\ 
+ 	d & 0 & 0 \\ 
+ 	e & 0 & 0 \\ 
 	 \hline
 \end{tabular}
 \end{center}
-\item Similarly, suppose SED $b$ twice communicates with SED $c$ and once with SED $e$. Now the table for SED $b$ should be:
-   \begin{center}
-  \begin{tabular}{ |c|c| } 
+\item Similarly, SED$_a$'s table after this communication:
+    \begin{center}
+  \begin{tabular}{ |c|c|c| } 
    \hline
-  \textbf{SED ID} & \textbf{Sequence Number} \\
+  \textbf{SED ID} & \textbf{SQ\_send} & \textbf{SQ\_receive}\\
  	\hline \hline
- 	a & 1 \\ 
-	c & 2  \\ 
- 	d & 0 \\ 
- 	e & 1 \\ 
+ 	b & 1 & 0 \\ 
+	c & 0 & 0 \\ 
+ 	d & 0 & 0 \\ 
+ 	e & 0 & 0 \\ 
+	 \hline
+\end{tabular}
+\end{center}
+\item Similarly, suppose SED$_b$ twice sends messages to SED$_c$ and once receives the message from SED$_c$. Now the table for SED $b$ should be:
+    \begin{center}
+  \begin{tabular}{ |c|c|c| } 
+   \hline
+  \textbf{SED ID} & \textbf{SQ\_send} & \textbf{SQ\_receive}\\
+ 	\hline \hline
+ 	a & 0 & 1 \\ 
+	c & 2 & 1 \\ 
+ 	d & 0 & 0 \\ 
+ 	e & 0 & 0 \\ 
 	 \hline
 \end{tabular}
 \end{center}
