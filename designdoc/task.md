@@ -23,6 +23,15 @@
    - Input: SCEWL_ID
    - Ouput: RSA key pair files: SCEWL_ID.pub, SCEWL_ID.pri
    - 256 bit
+   - **Advanced task**:
+     - key pair geneartion:
+       - usage: python create_secret.py [SCEWL_ID] [op]
+       - example: python create_secret.py 12 generate_key
+       - output: RSA key pair files: SCEWL_ID.pub, SCEWL_ID.pri
+     - key pair destroy:
+       - usage: python create_secret.py [SCEWL_ID] [op]
+       - example: python create_secret.py 12 delete_key
+       - output: delete key pair files: SCEWL_ID.pub, SCEWL_ID.pri
 5. Modification of sss.py [Anjie Sun]
    1. registration  
        - input: signed message
@@ -32,7 +41,7 @@
          - verify the header
          - store the id to the dedicated list
          - read local public key files and send them to the SED
-    2. deregistration
+   2. deregistration
        - input: signed message
        - operation
          - read the SCEWL_ID of the signed message 

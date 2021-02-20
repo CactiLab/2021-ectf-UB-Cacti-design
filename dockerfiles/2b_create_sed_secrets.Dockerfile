@@ -18,4 +18,4 @@ ARG SCEWL_ID
 
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
 ADD create_secrets.py sss/create_secrets
-RUN create_secrets ${SCEWL_ID} --opt generate_key
+RUN python create_secrets ${SCEWL_ID} generate_key 
