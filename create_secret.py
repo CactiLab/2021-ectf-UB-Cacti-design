@@ -2,14 +2,35 @@
 
 import rsa
 import sys
+import os
 
 def read_input():
     #TODO read input from command line (SHOULD ONLY BE 1 INPUT)
-    if (len(sys.argv) != 2): 
-        print("failure: input should be one argument\nUsage: python create_secret.py [SCEWL_ID]")
+    if (len(sys.argv) != 3): 
+        print("failure: input should be two argument\nUsage: python create_secret.py [SCEWL_ID] [generate_key/delete_key]")
+        print("did not generate/delete keys")
         return "bad"
     else:
-        return sys.argv[1]
+        if sys.argv[2] == "generate_key":
+            enc_input(sys.argv[1])
+        elif sys.argv[2] == "delete_key":
+            del_input(sys.argv[1])
+        else:
+            print("failure: second parameter not recognised\nUsage: python create_secret.py [SCEWL_ID] [generate_key/delete_key]")
+            print("did not generate/delete keys")
+
+
+def del_input(scewl_id):
+    #TODO: delete pub and private key files for scewl id (print bad if doesn't exist)
+    pub_path = str(scewl_id) + ".pub"
+    pri_path = str(scewl_id) + ".pri"
+    if os.path.exists(pub_path) and os.path.exists(pri_path):
+        os.remove(pub_path)
+        os.remove(pri_path)
+        print("success: deleted public and private key for id: ", scewl_id)
+    else:
+        print("failure: public and/or private key does not exist for ", scewl_id)
+
 
 def enc_input(scewl_id):
     #TODO: encrypt input -> return public pri key
@@ -29,14 +50,14 @@ def enc_input(scewl_id):
     f_pri = open(fn_pri, 'w')
     f_pri.write(str(scewl_pri))
     f_pri.close()
-
-    return "success"
+    
+    print("success: created private and public keys for ", str(scewl_id))
 
 if __name__ == '__main__':
     #read input from command line
-    scewl_id = read_input()
+    read_input()
     #encrypt input -> return public & private keys
-    if scewl_id != "bad":
-        enc_input(scewl_id)
-    else:
-        print("did not generate keys")
+    # if scewl_id != "bad":
+    #     enc_input(scewl_id)
+    # else:
+    #     print("did not generate keys")
