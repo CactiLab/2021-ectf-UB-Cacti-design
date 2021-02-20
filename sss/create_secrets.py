@@ -1,136 +1,63 @@
-#!/usr/bin/python3
+## INPUT: SCEWL_ID -> OUTPUT: SCEWL_ID.pub, SCEWL_ID.pri
 
-# 2021 Team Cacti, University at Buffalo
-# SCEWL Security Server
-#
-# Description: This file generates the RSA keys for add_SED, and deletes keys for remove_SED command
-# usage: 
-#       create_secrets.py [SCEWL_ID] [opt]
-# input: SCEWL_ID
-# output:  RSA_key pair, AES_key
-# opt: generate_key, remove_key
-
-import 
-
-import socket
-import select
-import struct
-import argparse
-import logging
+import rsa
+import sys
 import os
-from typing import NamedTuple
 
-
-SSS_IP = 'localhost'
-SSS_ID = 1
-
-# mirroring scewl enum at scewl.c:4
-ALREADY, REG, DEREG = -1, 0, 1
-
-logging.basicConfig(level=logging.INFO)
-
-Device = NamedTuple('Device', [('id', int), ('status', int), ('csock', socket.socket)])
-
-
-class SSS:
-    def __init__(self, sockf):
-        # Make sure the socket does not already exist
-        try:
-            os.unlink(sockf)
-        except OSError:
-            if os.path.exists(sockf):
-                raise
-
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.sock.bind(sockf)
-        self.sock.listen(10)
-        self.devs = {}
-    
-    @staticmethod
-    def sock_ready(sock, op='r'):
-        rready, wready, _ = select.select([sock], [sock], [], 0)
-        return rready if op == 'r' else wready
-
-    def handle_transaction(self, csock: socket.SocketType):
-        logging.debug('handling transaction')
-        data = b''
-        while len(data) < 12:
-            recvd = csock.recv(12 - len(data))
-            data += recvd
-
-            # check for closed connection
-            if not recvd:
-                raise ConnectionResetError
-        logging.debug(f'Received buffer: {repr(data)}')
-        _, _, _, _, dev_id, op = struct.unpack('<HHHHHH', data)
-
-        # requesting repeat transaction
-        if dev_id in self.devs and self.devs[dev_id] == op:
-            resp_op = ALREADY
-            logging.info(f'{dev_id}:already {"Registered" if op == REG else "Deregistered"}')
-        # record transaction
+def read_input():
+    #TODO read input from command line (SHOULD ONLY BE 1 INPUT)
+    if (len(sys.argv) != 3): 
+        print("failure: input should be two argument\nUsage: python create_secret.py [SCEWL_ID] [generate_key/delete_key]")
+        print("did not generate/delete keys")
+        return "bad"
+    else:
+        if sys.argv[2] == "generate_key":
+            enc_input(sys.argv[1])
+        elif sys.argv[2] == "delete_key":
+            del_input(sys.argv[1])
         else:
-            self.devs[dev_id] = Device(dev_id, op, csock)
-            resp_op = op
-            logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
-
-        # send response
-        resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
-        logging.debug(f'Sending response {repr(data)}')
-        csock.send(resp)
-
-    def start(self):
-        unattributed_socks = set()
-
-        # serve forever
-        while True:
-            # check for new client
-            if self.sock_ready(self.sock):
-                csock, _ = self.sock.accept()
-                logging.info(f':New connection')
-                unattributed_socks.add(csock)
-                continue
-
-            # check pool of unattributed sockets first
-            for csock in unattributed_socks:
-                try:
-                    if self.sock_ready(csock):
-                        self.handle_transaction(csock)
-                        unattributed_socks.remove(csock)
-                        break
-                except (ConnectionResetError, BrokenPipeError):
-                    logging.info(':Connection closed')
-                    unattributed_socks.remove(csock)
-                    csock.close()
-                    break
-            
-            # check pool of attributed sockets first
-            old_ids = []
-            for dev in self.devs.values():
-                if dev.csock and self.sock_ready(dev.csock):
-                    try:
-                        self.handle_transaction(dev.csock)
-                    except (ConnectionResetError, BrokenPipeError):
-                        logging.info(f'{dev.id}:Connection closed')
-                        dev.csock.close()
-                        old_ids.append(dev.id)
-            
-            for dev_id in old_ids:
-                del self.devs[dev_id]
+            print("failure: second parameter not recognised\nUsage: python create_secret.py [SCEWL_ID] [generate_key/delete_key]")
+            print("did not generate/delete keys")
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('sockf', help='Path to socket to bind the SSS to')
-    return parser.parse_args()
+def del_input(scewl_id):
+    #TODO: delete pub and private key files for scewl id (print bad if doesn't exist)
+    pub_path = str(scewl_id) + ".pub"
+    pri_path = str(scewl_id) + ".pri"
+    if os.path.exists(pub_path) and os.path.exists(pri_path):
+        os.remove(pub_path)
+        os.remove(pri_path)
+        print("success: deleted public and private key for id: ", scewl_id)
+    else:
+        print("failure: public and/or private key does not exist for ", scewl_id)
 
 
-def main():
-    args = parse_args()
-    # map of SCEWL IDs to statuses
-    sss = SSS(args.sockf)
-    sss.start()
+def enc_input(scewl_id):
+    #TODO: encrypt input -> return public pri key
+    #should write to specific files
+    (scewl_pub, scewl_pri) = rsa.newkeys(256)
+    
+    #get filenames
+    fn_pub = str(scewl_id) + ".pub"
+    fn_pri = str(scewl_id) + ".pri"
+    
+    #write to pub file
+    myfile_pub = open(fn_pub, 'w')
+    myfile_pub.write(str(scewl_pub))
+    myfile_pub.close()
 
+    #write to pri file
+    f_pri = open(fn_pri, 'w')
+    f_pri.write(str(scewl_pri))
+    f_pri.close()
+    
+    print("success: created private and public keys for ", str(scewl_id))
 
 if __name__ == '__main__':
-    main()
+    #read input from command line
+    read_input()
+    #encrypt input -> return public & private keys
+    # if scewl_id != "bad":
+    #     enc_input(scewl_id)
+    # else:
+    #     print("did not generate keys")
