@@ -17,5 +17,5 @@ ARG SCEWL_ID
 #       (e.g. only mapping in the SED directory rather than the entire repo)
 
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
-ADD create_secrets.py sss/create_secrets
-RUN create_secrets ${SCEWL_ID} --opt generate_key
+ADD create_secret.py sss/create_secret
+RUN python create_secret ${SCEWL_ID} generate_key
