@@ -52,7 +52,7 @@ typedef struct scewl_sss_msg_t {
 // sequence number for each messag 
 typedef struct sequence_num {
   uint32_t sq_send [max_sequenced_SEDS];
-  uint32_t sq_rceive [max_sequenced_SEDS];
+  uint32_t sq_receive [max_sequenced_SEDS];
 }sequence_num;
 
 // SCEWL status codes

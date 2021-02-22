@@ -210,6 +210,10 @@ int sss_deregister() {
   return msg.op == SCEWL_SSS_DEREG;
 }
 
+void add_sequence_number () {
+  printf("%s",buf);
+}
+
 int main() {
   int registered = 0, len;
   scewl_hdr_t hdr;
@@ -217,7 +221,7 @@ int main() {
   sequence_num messeage_sq;
   // intialize the sequence numbers to zero
   memset(&messeage_sq.sq_send, 0, sizeof(messeage_sq.sq_send));
-  memset(&messeage_sq.sq_rceive, 0, sizeof(messeage_sq.sq_rceive));
+  memset(&messeage_sq.sq_receive, 0, sizeof(messeage_sq.sq_receive));
   // initialize interfaces
   intf_init(CPU_INTF);
   intf_init(SSS_INTF);
@@ -272,6 +276,7 @@ int main() {
         } else if (tgt_id == SCEWL_SSS_ID) {
           registered = handle_registration(buf);
         } else if (tgt_id == SCEWL_FAA_ID) {
+          add_sequence_number();
           handle_faa_send(buf, len);
         } else {
           handle_scewl_send(buf, tgt_id, len);
