@@ -129,26 +129,36 @@ unsigned long long rand_prime (int lower, int upper)
 	return p;
     }
 }
-
+unsigned long long power_mod(int key,int n,int mc){
+    unsigned long long k = 1;
+      for(int j = 0; j < key; j++)
+      {
+         k = k * mc;
+         k = k % n;
+      }
+      return k;
+}
 int main ()
 {
   int p, q, n, e, d, m, ct, c;
   unsigned long long int r;
-  p = 3;			//generate random prime number 907
-  q = 13;			//generate random prime number 773
+  p = rand_prime (2, 1000000000);			//generate random prime number 907
+  q = rand_prime (2, 1000000000);			//generate random prime number 773
   n = p * q;
   ct = lcm (p - 1, q - 1);	//lcm 
   printf ("%d\n", ct);
-  // printf("%d\n",gcd(11,ct));
+  printf("%d\n",gcd(11,ct));
   e = 11;			//choose between 1 and ct, generally 65,537 (rand() % (ct - 1 + 1)) + 1; -> gcd should be 1
   m = 4;			//message
-  c = (int)pow (m, e) % n;	// m power e mod n is ciphertext
+  // c = (int)pow (m, e) % n;	// m power e mod n is ciphertext
+  c = power_mod(e,n,m);
   printf ("%d\n", c);
   d = modInverse(e, ct);
   printf ("Modular multiplicative inverse is %d\n", d);
-  r = (unsigned long long int)pow (c, d) % n;
+  // r = (unsigned long long int)pow (c, d) % n;
+  r = power_mod(d,n,c);
   printf ("Decrypt %llu\n", r);
-  printf ("\n%llu", rand_prime (2, 1000000000)); //generating random prime numbers
+  printf ("\n%llu", rand_prime (2, 1000000000));
   printf ("\n%llu", rand_prime (2, 1000000000));
   return 0;
 }
