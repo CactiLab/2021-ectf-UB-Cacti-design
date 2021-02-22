@@ -21,7 +21,7 @@
 * REGARDING ITS FITNESS FOR ANY PARTICULAR PURPOSE. USE IT AT YOUR OWN RISK.
 *
 *******************************************************************************/
-
+#include <stdio.h>
 #include "gcm.h"
 #include "aes.h"
 
@@ -90,10 +90,10 @@ static const uint64_t last4[16] = {
         | ( (uint32_t) (b)[(i) + 3]       ); }
 
 #define PUT_UINT32_BE(n,b,i) {                      \
-    (b)[(i)    ] = (uchar) ( (n) >> 24 );   \
-    (b)[(i) + 1] = (uchar) ( (n) >> 16 );   \
-    (b)[(i) + 2] = (uchar) ( (n) >>  8 );   \
-    (b)[(i) + 3] = (uchar) ( (n)       ); }
+    (b)[(i)    ] = (uint8_t) ( (n) >> 24 );   \
+    (b)[(i) + 1] = (uint8_t) ( (n) >> 16 );   \
+    (b)[(i) + 2] = (uint8_t) ( (n) >>  8 );   \
+    (b)[(i) + 3] = (uint8_t) ( (n)       ); }
 
 
 /******************************************************************************
@@ -125,31 +125,31 @@ int gcm_initialize( void )
  *
  ******************************************************************************/
 static void gcm_mult( gcm_context *ctx,     // pointer to established context
-                      const uchar x[16],    // pointer to 128-bit input vector
-                      uchar output[16] )    // pointer to 128-bit output vector
+                      const uint8_t x[16],    // pointer to 128-bit input vector
+                      uint8_t output[16] )    // pointer to 128-bit output vector
 {
     int i;
-    uchar lo, hi, rem;
+    uint8_t lo, hi, rem;
     uint64_t zh, zl;
 
-    lo = (uchar)( x[15] & 0x0f );
-    hi = (uchar)( x[15] >> 4 );
+    lo = (uint8_t)( x[15] & 0x0f );
+    hi = (uint8_t)( x[15] >> 4 );
     zh = ctx->HH[lo];
     zl = ctx->HL[lo];
 
     for( i = 15; i >= 0; i-- ) {
-        lo = (uchar) ( x[i] & 0x0f );
-        hi = (uchar) ( x[i] >> 4 );
+        lo = (uint8_t) ( x[i] & 0x0f );
+        hi = (uint8_t) ( x[i] >> 4 );
 
         if( i != 15 ) {
-            rem = (uchar) ( zl & 0x0f );
+            rem = (uint8_t) ( zl & 0x0f );
             zl = ( zh << 60 ) | ( zl >> 4 );
             zh = ( zh >> 4 );
             zh ^= (uint64_t) last4[rem] << 48;
             zh ^= ctx->HH[lo];
             zl ^= ctx->HL[lo];
         }
-        rem = (uchar) ( zl & 0x0f );
+        rem = (uint8_t) ( zl & 0x0f );
         zl = ( zh << 60 ) | ( zl >> 4 );
         zh = ( zh >> 4 );
         zh ^= (uint64_t) last4[rem] << 48;
@@ -172,7 +172,7 @@ static void gcm_mult( gcm_context *ctx,     // pointer to established context
  *
  ******************************************************************************/
 int gcm_setkey( gcm_context *ctx,   // pointer to caller-provided gcm context
-                const uchar *key,   // pointer to the AES encryption key
+                const uint8_t *key,   // pointer to the AES encryption key
                 const uint keysize) // size in bytes (must be 16, 24, 32 for
 		                    // 128, 192 or 256-bit keys respectively)
 {
@@ -247,14 +247,14 @@ int gcm_setkey( gcm_context *ctx,   // pointer to caller-provided gcm context
  ******************************************************************************/
 int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
                int mode,            // GCM_ENCRYPT or GCM_DECRYPT
-               const uchar *iv,     // pointer to initialization vector
+               const uint8_t *iv,     // pointer to initialization vector
                size_t iv_len,       // IV length in bytes (should == 12)
-               const uchar *add,    // ptr to additional AEAD data (NULL if none)
+               const uint8_t *add,    // ptr to additional AEAD data (NULL if none)
                size_t add_len )     // length of additional AEAD data (bytes)
 {
     int ret;            // our error return if the AES encrypt fails
-    uchar work_buf[16]; // XOR source built from provided IV if len != 16
-    const uchar *p;     // general purpose array pointer
+    uint8_t work_buf[16]; // XOR source built from provided IV if len != 16
+    const uint8_t *p;     // general purpose array pointer
     size_t use_len;     // byte count to process, up to 16 bytes
     size_t i;           // local loop iterator
 
@@ -316,11 +316,11 @@ int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
  ******************************************************************************/
 int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
                 size_t length,          // length, in bytes, of data to process
-                const uchar *input,     // pointer to source data
-                uchar *output )         // pointer to destination data
+                const uint8_t *input,     // pointer to source data
+                uint8_t *output )         // pointer to destination data
 {
     int ret;            // our error return if the AES encrypt fails
-    uchar ectr[16];     // counter-mode cipher output for XORing
+    uint8_t ectr[16];     // counter-mode cipher output for XORing
     size_t use_len;     // byte count to process, up to 16 bytes
     size_t i;           // local loop iterator
 
@@ -342,7 +342,7 @@ int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
         {
              for( i = 0; i < use_len; i++ ) {
                 // XOR the cipher's ouptut vector (ectr) with our input
-                output[i] = (uchar) ( ectr[i] ^ input[i] );
+                output[i] = (uint8_t) ( ectr[i] ^ input[i] );
                 // now we mix in our data into the authentication hash.
                 // if we're ENcrypting we XOR in the post-XOR (output) 
                 // results, but if we're DEcrypting we XOR in the input 
@@ -361,7 +361,7 @@ int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
        	        ctx->buf[i] ^= input[i];
 
                 // XOR the cipher's ouptut vector (ectr) with our input
-                output[i] = (uchar) ( ectr[i] ^ input[i] );
+                output[i] = (uint8_t) ( ectr[i] ^ input[i] );
              }
         }
         gcm_mult( ctx, ctx->buf, ctx->buf );    // perform a GHASH operation
@@ -382,10 +382,10 @@ int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
  *
  ******************************************************************************/
 int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
-                uchar *tag,         // pointer to buffer which receives the tag
+                uint8_t *tag,         // pointer to buffer which receives the tag
                 size_t tag_len )    // length, in bytes, of the tag-receiving buf
 {
-    uchar work_buf[16];
+    uint8_t work_buf[16];
     uint64_t orig_len     = ctx->len * 8;
     uint64_t orig_add_len = ctx->add_len * 8;
     size_t i;
@@ -407,6 +407,13 @@ int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
     return( 0 );
 }
 
+// static void phex(const uint8_t* str, uint32_t len)
+// {
+//     unsigned char i;
+//     for (i = 0; i < len; ++i)
+//         printf("%.2x", str[i]);
+//     printf("\n");
+// }
 
 /******************************************************************************
  *
@@ -428,20 +435,21 @@ int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
 int gcm_crypt_and_tag(
         gcm_context *ctx,       // gcm context with key already setup
         int mode,               // cipher direction: GCM_ENCRYPT or GCM_DECRYPT
-        const uchar *iv,        // pointer to the 12-byte initialization vector
+        const uint8_t *iv,        // pointer to the 12-byte initialization vector
         size_t iv_len,          // byte length if the IV. should always be 12
-        const uchar *add,       // pointer to the non-ciphered additional data
+        const uint8_t *add,       // pointer to the non-ciphered additional data
         size_t add_len,         // byte length of the additional AEAD data
-        const uchar *input,     // pointer to the cipher data source
-        uchar *output,          // pointer to the cipher data destination
+        const uint8_t *input,     // pointer to the cipher data source
+        uint8_t *output,          // pointer to the cipher data destination
         size_t length,          // byte length of the cipher data
-        uchar *tag,             // pointer to the tag to be generated
+        uint8_t *tag,             // pointer to the tag to be generated
         size_t tag_len )        // byte length of the tag to be generated
 {   /*
        assuming that the caller has already invoked gcm_setkey to
        prepare the gcm context with the keying material, we simply
        invoke each of the three GCM sub-functions in turn...
     */
+
     gcm_start  ( ctx, mode, iv, iv_len, add, add_len );
     gcm_update ( ctx, length, input, output );
     gcm_finish ( ctx, tag, tag_len );
@@ -463,19 +471,20 @@ int gcm_crypt_and_tag(
  ******************************************************************************/
 int gcm_auth_decrypt(
         gcm_context *ctx,       // gcm context with key already setup
-        const uchar *iv,        // pointer to the 12-byte initialization vector
+        const uint8_t *iv,        // pointer to the 12-byte initialization vector
         size_t iv_len,          // byte length if the IV. should always be 12
-        const uchar *add,       // pointer to the non-ciphered additional data
+        const uint8_t *add,       // pointer to the non-ciphered additional data
         size_t add_len,         // byte length of the additional AEAD data
-        const uchar *input,     // pointer to the cipher data source
-        uchar *output,          // pointer to the cipher data destination
+        const uint8_t *input,     // pointer to the cipher data source
+        uint8_t *output,          // pointer to the cipher data destination
         size_t length,          // byte length of the cipher data
-        const uchar *tag,       // pointer to the tag to be authenticated
+        const uint8_t *tag,       // pointer to the tag to be authenticated
         size_t tag_len )        // byte length of the tag <= 16
 {
-    uchar check_tag[16];        // the tag generated and returned by decryption
-    int diff;                   // an ORed flag to detect authentication errors
-    size_t i;                   // our local iterator
+    uint8_t check_tag[16];        // the tag generated and returned by decryption
+    int diff = 0;                   // an ORed flag to detect authentication errors
+    size_t i = 0;                   // our local iterator
+    memset(check_tag, 0, 16);
     /*
        we use GCM_DECRYPT_AND_TAG (above) to perform our decryption
        (which is an identical XORing to reverse the previous one)

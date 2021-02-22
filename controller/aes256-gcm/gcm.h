@@ -47,9 +47,9 @@ typedef struct {
     uint64_t add_len;       // total add data length
     uint64_t HL[16];        // precalculated lo-half HTable
     uint64_t HH[16];        // precalculated hi-half HTable
-    uchar base_ectr[16];    // first counter-mode cipher output for tag
-    uchar y[16];            // the current cipher-input IV|Counter value
-    uchar buf[16];          // buf working value
+    uint8_t base_ectr[16];    // first counter-mode cipher output for tag
+    uint8_t y[16];            // the current cipher-input IV|Counter value
+    uint8_t buf[16];          // buf working value
     aes_context aes_ctx;    // cipher context used
 } gcm_context;
 
@@ -64,7 +64,7 @@ int gcm_initialize( void );
  *  GCM_SETKEY : sets the GCM (and AES) keying material for use
  ******************************************************************************/
 int gcm_setkey( gcm_context *ctx,   // caller-provided context ptr
-                const uchar *key,   // pointer to cipher key
+                const uint8_t *key,   // pointer to cipher key
                 const uint keysize  // size in bytes (must be 16, 24, 32 for
 		                    // 128, 192 or 256-bit keys respectively)
 ); // returns 0 for success
@@ -90,14 +90,14 @@ int gcm_setkey( gcm_context *ctx,   // caller-provided context ptr
 int gcm_crypt_and_tag(
         gcm_context *ctx,       // gcm context with key already setup
         int mode,               // cipher direction: ENCRYPT (1) or DECRYPT (0)
-        const uchar *iv,        // pointer to the 12-byte initialization vector
+        const uint8_t *iv,        // pointer to the 12-byte initialization vector
         size_t iv_len,          // byte length if the IV. should always be 12
-        const uchar *add,       // pointer to the non-ciphered additional data
+        const uint8_t *add,       // pointer to the non-ciphered additional data
         size_t add_len,         // byte length of the additional AEAD data
-        const uchar *input,     // pointer to the cipher data source
-        uchar *output,          // pointer to the cipher data destination
+        const uint8_t *input,     // pointer to the cipher data source
+        uint8_t *output,          // pointer to the cipher data destination
         size_t length,          // byte length of the cipher data
-        uchar *tag,             // pointer to the tag to be generated
+        uint8_t *tag,             // pointer to the tag to be generated
         size_t tag_len );       // byte length of the tag to be generated
 
 
@@ -115,14 +115,14 @@ int gcm_crypt_and_tag(
  ******************************************************************************/
 int gcm_auth_decrypt(
         gcm_context *ctx,       // gcm context with key already setup
-        const uchar *iv,        // pointer to the 12-byte initialization vector
+        const uint8_t *iv,        // pointer to the 12-byte initialization vector
         size_t iv_len,          // byte length if the IV. should always be 12
-        const uchar *add,       // pointer to the non-ciphered additional data
+        const uint8_t *add,       // pointer to the non-ciphered additional data
         size_t add_len,         // byte length of the additional AEAD data
-        const uchar *input,     // pointer to the cipher data source
-        uchar *output,          // pointer to the cipher data destination
+        const uint8_t *input,     // pointer to the cipher data source
+        uint8_t *output,          // pointer to the cipher data destination
         size_t length,          // byte length of the cipher data
-        const uchar *tag,       // pointer to the tag to be authenticated
+        const uint8_t *tag,       // pointer to the tag to be authenticated
         size_t tag_len );       // byte length of the tag <= 16
 
 
@@ -136,9 +136,9 @@ int gcm_auth_decrypt(
  ******************************************************************************/
 int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
                int mode,            // ENCRYPT (1) or DECRYPT (0)
-               const uchar *iv,     // pointer to initialization vector
+               const uint8_t *iv,     // pointer to initialization vector
                size_t iv_len,       // IV length in bytes (should == 12)
-               const uchar *add,    // pointer to additional AEAD data (NULL if none)
+               const uint8_t *add,    // pointer to additional AEAD data (NULL if none)
                size_t add_len );    // length of additional AEAD data (bytes)
 
 
@@ -155,8 +155,8 @@ int gcm_start( gcm_context *ctx,    // pointer to user-provided GCM context
  ******************************************************************************/
 int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
                 size_t length,          // length, in bytes, of data to process
-                const uchar *input,     // pointer to source data
-                uchar *output );        // pointer to destination data
+                const uint8_t *input,     // pointer to source data
+                uint8_t *output );        // pointer to destination data
 
 
 /******************************************************************************
@@ -168,7 +168,7 @@ int gcm_update( gcm_context *ctx,       // pointer to user-provided GCM context
  *
  ******************************************************************************/
 int gcm_finish( gcm_context *ctx,   // pointer to user-provided GCM context
-                uchar *tag,         // ptr to tag buffer - NULL if tag_len = 0
+                uint8_t *tag,         // ptr to tag buffer - NULL if tag_len = 0
                 size_t tag_len );   // length, in bytes, of the tag-receiving buf
 
 

@@ -12,7 +12,7 @@
 #include "aes-gcm.h"
 
 // prints string as hex
-static void phex(const uchar* str, uint8_t len)
+static void phex(const uint8_t* str, uint8_t len)
 {
 
 // #if defined(AES256)
@@ -97,22 +97,22 @@ Four block types are defined:
 
 
 static int test_gcm_encryption(
-        const uchar *key,       // pointer to the cipher key
+        const uint8_t *key,       // pointer to the cipher key
         size_t key_len,         // byte length of the key
-        const uchar *iv,        // pointer to the initialization vector
+        const uint8_t *iv,        // pointer to the initialization vector
         size_t iv_len,          // byte length of the initialization vector
-        const uchar *aad,       // pointer to the non-ciphered additional data
+        const uint8_t *aad,       // pointer to the non-ciphered additional data
         size_t aad_len,         // byte length of the additional AEAD data
-        const uchar *pt,        // pointer to the plaintext SOURCE data
-        uchar *ct,        // pointer to the CORRECT cipher data
+        const uint8_t *pt,        // pointer to the plaintext SOURCE data
+        uint8_t *ct,        // pointer to the CORRECT cipher data
         size_t ct_len,          // byte length of the cipher data
-        uchar *tag,       // pointer to the CORRECT tag to be generated
+        uint8_t *tag,       // pointer to the CORRECT tag to be generated
         size_t tag_len )        // byte length of the tag to be generated
 {
     int ret = 0;                // our return value
     gcm_context ctx;            // includes the AES context structure
-    // uchar ct_buf[32];          // cipher text results for comparison
-    // uchar tag_buf[16];          // tag result buffer for comparison
+    // uint8_t ct_buf[32];          // cipher text results for comparison
+    // uint8_t tag_buf[16];          // tag result buffer for comparison
 
     gcm_setkey( &ctx, key, (const uint)key_len );   // setup our AES-GCM key
 
@@ -135,21 +135,21 @@ static int test_gcm_encryption(
 }
 
 static int test_gcm_decryption(
-        const uchar *key,       // pointer to the cipher key
+        const uint8_t *key,       // pointer to the cipher key
         size_t key_len,         // byte length of the key
-        const uchar *iv,        // pointer to the initialization vector
+        const uint8_t *iv,        // pointer to the initialization vector
         size_t iv_len,          // byte length of the initialization vector
-        const uchar *aad,       // pointer to the non-ciphered additional data
+        const uint8_t *aad,       // pointer to the non-ciphered additional data
         size_t aad_len,         // byte length of the additional AEAD data
-        const uchar *pt,        // pointer to the plaintext SOURCE data
-        const uchar *ct,        // pointer to the CORRECT cipher data
+        const uint8_t *pt,        // pointer to the plaintext SOURCE data
+        const uint8_t *ct,        // pointer to the CORRECT cipher data
         size_t ct_len,          // byte length of the cipher data
-        const uchar *tag,       // pointer to the CORRECT tag to be generated
+        const uint8_t *tag,       // pointer to the CORRECT tag to be generated
         size_t tag_len )        // byte length of the tag to be generated
 {
     int ret = 0;                // our return value
     gcm_context ctx;            // includes the AES context structure
-    uchar pt_buf[32];          // plaintext results for comparison
+    uint8_t pt_buf[32];          // plaintext results for comparison
 
     gcm_setkey( &ctx, key, (const uint)key_len );   // setup our AES-GCM key
 
@@ -191,14 +191,14 @@ int main(void)
     // int exit;
 
     int ret = 0;                // our function return status
-    // uchar RecordType;           // 0 for end of file
+    // uint8_t RecordType;           // 0 for end of file
                                 // 1 for encrypt and/or auth
                                 // 2 for decrypt and/or auth CORRECTLY
                                 // 3 for decrypt and/or auth --FAIL--
 
     // declarations for the lengths and pointers to our test vectorse the le
     // size_t key_len, iv_len, aad_len, pt_len, ct_len, tag_len;
-    // uchar *key, *iv, *aad, *pt, *ct, *tag;    
+    // uint8_t *key, *iv, *aad, *pt, *ct, *tag;    
     // msg_buff msg_buffer;
 
 #if defined(AES256)
@@ -212,7 +212,7 @@ int main(void)
     return 0;
 #endif
 
-    const uchar key[32] = {   0x31, 0xbd, 0xad, 0xd9, 
+    const uint8_t key[32] = {   0x31, 0xbd, 0xad, 0xd9, 
                         0x66, 0x98, 0xc2, 0x04, 
                         0xaa, 0x9c, 0xe1, 0x44,
                         0x8e, 0xa9, 0x4a, 0xe1, 
@@ -221,25 +221,25 @@ int main(void)
                         0x51, 0xbb, 0x18, 0x22, 
                         0x66, 0x6b, 0x8f, 0x22  };
 
-    const uchar iv[12] = {    0x0d, 0x18, 0xe0, 0x6c, 
+    const uint8_t iv[12] = {    0x0d, 0x18, 0xe0, 0x6c, 
                         0x7c, 0x72, 0x5a, 0xc9, 
                         0xe3, 0x62, 0xe1, 0xce};
 
-    // const uchar *aad = NULL;
+    // const uint8_t *aad = NULL;
 
-    const uchar pt[16] = {    0x2d, 0xb5, 0x16, 0x8e,
+    const uint8_t pt[16] = {    0x2d, 0xb5, 0x16, 0x8e,
                         0x93, 0x25, 0x56, 0xf8,
                         0x08, 0x9a, 0x06, 0x22,
                         0x98, 0x1d, 0x01, 0x7d};
 
-    const uchar ct[16] = {      0xfa, 0x43, 0x62, 0x18, 
+    const uint8_t ct[16] = {      0xfa, 0x43, 0x62, 0x18, 
                                 0x96, 0x61, 0xd1, 0x63, 
                                 0xfc, 0xd6, 0xa5, 0x6d, 
                                 0x8b, 0xf0, 0x40, 0x5a};
 
-    // uchar ct[16];
-    uchar tag[16];
-    uchar output[ctLen];
+    // uint8_t ct[16];
+    uint8_t tag[16];
+    uint8_t output[ctLen];
 
     // memset(ct, 0, 12);
     memset(tag, 0, 16);

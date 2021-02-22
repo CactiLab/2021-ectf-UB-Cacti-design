@@ -65,7 +65,7 @@ typedef struct {
  ******************************************************************************/
 int aes_setkey( aes_context *ctx,       // pointer to context
                 int mode,               // 1 or 0 for Encrypt/Decrypt
-                const uchar *key,       // AES input key
+                const uint8_t *key,       // AES input key
                 uint keysize );         // size in bytes (must be 16, 24, 32 for
 		                        // 128, 192 or 256-bit keys respectively)
                                         // returns 0 for success
@@ -74,8 +74,8 @@ int aes_setkey( aes_context *ctx,       // pointer to context
  *  AES_CIPHER : called to encrypt or decrypt ONE 128-bit block of data
  ******************************************************************************/
 int aes_cipher( aes_context *ctx,       // pointer to context
-                const uchar input[16],  // 128-bit block to en/decipher
-                uchar output[16] );     // 128-bit output result block
+                const uint8_t input[16],  // 128-bit block to en/decipher
+                uint8_t output[16] );     // 128-bit output result block
                                         // returns 0 for success
 
 #endif /* AES_HEADER */

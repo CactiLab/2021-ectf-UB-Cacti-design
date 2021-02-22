@@ -1,20 +1,21 @@
 //
-//  aes-gcm.h
-//  MKo
+//  aes-gcm.c
+//  Pods
 //
 //  Created by Markus Kosmal on 20/11/14.
 //  Modified by Xi Tan on 22/02/21
 //
+//
 
 #include "aes-gcm.h"
 
-int aes_gcm_encrypt_tag(unsigned char* output, const unsigned char* input, int input_length, const unsigned char* key, const size_t key_len, const unsigned char * iv, const size_t iv_len, uchar *tag, const size_t tag_len){
+int aes_gcm_encrypt_tag(uint8_t* output, const uint8_t* input, int input_length, const uint8_t* key, const size_t key_len, const uint8_t * iv, const size_t iv_len, uint8_t *tag, const size_t tag_len){
     
     int ret = 0;                // our return value
     gcm_context ctx;            // includes the AES context structure
     
     // size_t tag_len = 0;
-    // unsigned char * tag_buf = NULL;
+    // uint8_t * tag_buf = NULL;
     
     gcm_setkey( &ctx, key, (const uint)key_len );
     
@@ -26,7 +27,7 @@ int aes_gcm_encrypt_tag(unsigned char* output, const unsigned char* input, int i
     return( ret );
 }
 
-int aes_gcm_decrypt_auth(unsigned char* output, const unsigned char* input, int input_length, const unsigned char* key, const size_t key_len, const unsigned char * iv, const size_t iv_len, uchar *check_tag, const size_t tag_len){
+int aes_gcm_decrypt_auth(uint8_t* output, const uint8_t* input, int input_length, const uint8_t* key, const size_t key_len, const uint8_t * iv, const size_t iv_len, uint8_t *check_tag, const size_t tag_len){
     
     int ret = 0;                // our return value
     int diff;                   // an ORed flag to detect authentication errors
@@ -34,7 +35,7 @@ int aes_gcm_decrypt_auth(unsigned char* output, const unsigned char* input, int 
     gcm_context ctx;            // includes the AES context structure
     
     // size_t tag_len = 0;
-    uchar tag_buf[16];
+    uint8_t tag_buf[16];
     memset(tag_buf, 0, 16);
     
     gcm_setkey( &ctx, key, (const uint)key_len );

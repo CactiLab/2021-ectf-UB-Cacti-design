@@ -38,14 +38,14 @@ static int aes_tables_inited = 0;   // run-once flag for performing key
  *  decryption is typically disabled by setting AES_DECRYPTION to 0 in aes.h.
  */
                             // We always need our forward tables
-static uchar FSb[256];      // Forward substitution box (FSb)
+static uint8_t FSb[256];      // Forward substitution box (FSb)
 static uint32_t FT0[256];   // Forward key schedule assembly tables
 static uint32_t FT1[256];
 static uint32_t FT2[256];
 static uint32_t FT3[256];
 
 #if AES_DECRYPTION          // We ONLY need reverse for decryption
-static uchar RSb[256];      // Reverse substitution box (RSb)
+static uint8_t RSb[256];      // Reverse substitution box (RSb)
 static uint32_t RT0[256];   // Reverse key schedule assembly tables
 static uint32_t RT1[256];
 static uint32_t RT2[256];
@@ -65,10 +65,10 @@ static uint32_t RCON[10];   // AES round constants
         | ( (uint32_t) (b)[(i) + 3] << 24 ); }
 
 #define PUT_UINT32_LE(n,b,i) {                  \
-    (b)[(i)    ] = (uchar) ( (n)       );       \
-    (b)[(i) + 1] = (uchar) ( (n) >>  8 );       \
-    (b)[(i) + 2] = (uchar) ( (n) >> 16 );       \
-    (b)[(i) + 3] = (uchar) ( (n) >> 24 ); }
+    (b)[(i)    ] = (uint8_t) ( (n)       );       \
+    (b)[(i) + 1] = (uint8_t) ( (n) >>  8 );       \
+    (b)[(i) + 2] = (uint8_t) ( (n) >> 16 );       \
+    (b)[(i) + 3] = (uint8_t) ( (n) >> 24 ); }
 
 /*
  *  AES forward and reverse encryption round processing macros
@@ -172,9 +172,9 @@ void aes_init_keygen_tables( void )
         MIX(x,y);
         MIX(x,y);
         MIX(x,y); 
-        FSb[i] = (uchar) ( x ^= 0x63 );
+        FSb[i] = (uint8_t) ( x ^= 0x63 );
 #if AES_DECRYPTION  // whether AES decryption is supported
-        RSb[x] = (uchar) i;
+        RSb[x] = (uint8_t) i;
 #endif /* AES_DECRYPTION */
 
     }
@@ -218,7 +218,7 @@ void aes_init_keygen_tables( void )
  *
  ******************************************************************************/
 int aes_set_encryption_key( aes_context *ctx,
-                            const uchar *key,
+                            const uint8_t *key,
                             uint keysize )
 {
     uint i;                 // general purpose iteration local
@@ -303,7 +303,7 @@ int aes_set_encryption_key( aes_context *ctx,
  *
  ******************************************************************************/
 int aes_set_decryption_key( aes_context *ctx,
-                            const uchar *key,
+                            const uint8_t *key,
                             uint keysize )
 {
     int i, j;
@@ -346,7 +346,7 @@ int aes_set_decryption_key( aes_context *ctx,
  ******************************************************************************/
 int aes_setkey( aes_context *ctx,   // AES context provided by our caller
                 int mode,           // ENCRYPT or DECRYPT flag
-                const uchar *key,   // pointer to the key
+                const uint8_t *key,   // pointer to the key
                 uint keysize )      // key length in bytes
 {
     // since table initialization is not thread safe, we could either add
@@ -384,8 +384,8 @@ int aes_setkey( aes_context *ctx,   // AES context provided by our caller
  *
  ******************************************************************************/
 int aes_cipher( aes_context *ctx,
-                    const uchar input[16],
-                    uchar output[16] )
+                    const uint8_t input[16],
+                    uint8_t output[16] )
 {
     int i;
     uint32_t *RK, X0, X1, X2, X3, Y0, Y1, Y2, Y3;   // general purpose locals
