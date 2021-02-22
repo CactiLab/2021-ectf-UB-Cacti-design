@@ -35,7 +35,7 @@ def del_input(scewl_id):
 def enc_input(scewl_id):
     #TODO: encrypt input -> return public pri key
     #should write to specific files
-    (scewl_pub, scewl_pri) = rsa.newkeys(256)
+    (scewl_pub, scewl_pri) = rsa.newkeys(512)
     
     #get filenames
     fn_pub = str(scewl_id) + ".pub"
@@ -43,12 +43,13 @@ def enc_input(scewl_id):
     
     #write to pub file
     myfile_pub = open(fn_pub, 'w')
-    myfile_pub.write(str(scewl_pub))
+    myfile_pub.write(scewl_pub.save_pkcs1().decode())
+
     myfile_pub.close()
 
     #write to pri file
     f_pri = open(fn_pri, 'w')
-    f_pri.write(str(scewl_pri))
+    f_pri.write(scewl_pri.save_pkcs1().decode())
     f_pri.close()
     
     print("success: created private and public keys for ", str(scewl_id))
