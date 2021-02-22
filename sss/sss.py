@@ -127,48 +127,6 @@ def parse_args():
     parser.add_argument('sockf', help='Path to socket to bind the SSS to')
     return parser.parse_args()
 
-#2021/2/22 modified by Anjie Sun
-                         
-class Message:
-    class Struct:
-        def __init__(self, message, scewl_id, op)
-            self.message = message
-            self.scewl_id = scewl_id
-            self.op = op
-        def make_struct(self, message, scewl_id. op):
-            return self.Struct(message, scewl_id, op)
-
-def register(message):
-    for i in range(0, len(SED))
-        if(message.scewl_id == SED[i])
-            pub = str(message.scewl_id)+".pub"
-            f_pub = open(pub, 'r')
-            filepub = f_pub.read()
-            f_pub.close()
-            pri = str(message.scewl_id)+".pri"
-            f_pri = open(pri, 'r')
-            filepri = f_pri.read()
-            f_pri.close()
-            sig = rsa.sign(message, filepri, 'SHA-1')
-            rsa.verify(message.message, sig, filepub)
-            dedicated.append(message.scewl_id)
-
-def deregistration(message)
-        for i in range(0, len(SED))
-        if(message.scewl_id == SED[i])
-            for i in range(0, len(dedicated))
-                pub = str(message.scewl_id)+".pub"
-                f_pub = open(pub, 'r')
-                filepub = f_pub.read()
-                f_pub.close()
-                pri = str(message.scewl_id)+".pri"
-                f_pri = open(pri, 'r')
-                filepri = f_pri.read()
-                f_pri.close()
-                sig = rsa.sign(message, filepri, 'SHA-1')
-                rsa.verify(message.message, sig, filepub)
-                dedicated.remove(message.scewl_id)
-
 # input signed message
 
 #########################################################################
