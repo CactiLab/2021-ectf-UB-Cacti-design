@@ -11,6 +11,11 @@ FROM ubuntu:focal
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y python3
 
+# setup the environment
+RUN apt-get update && apt-get upgrade -y
+RUN apt-get install -y python3-pip
+RUN pip3 install rsa
+
 # add any deployment-wide secrets here
 RUN mkdir /secrets
 

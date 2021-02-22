@@ -12,4 +12,9 @@ FROM ${DEPLOYMENT}/sss
 ARG SCEWL_ID
 
 # do whatever you need to remove the SED from the deployment
-RUN python create_secret ${SCEWL_ID}  delete_key
+
+##############################
+# This test is done
+RUN python3 create_secret ${SCEWL_ID}  delete_key
+
+##############################
