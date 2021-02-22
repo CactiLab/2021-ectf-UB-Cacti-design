@@ -48,6 +48,12 @@ typedef struct scewl_sss_msg_t {
   uint16_t   op;
 } scewl_sss_msg_t;
 
+// sequence number for each messag 
+typedef struct sequence_num {
+  uint32_t sq_send [256];
+  uint32_t sq_rceive [256];
+}sequence_num;
+
 // SCEWL status codes
 enum scewl_status { SCEWL_ERR = -1, SCEWL_OK, SCEWL_ALREADY, SCEWL_NO_MSG };
 

@@ -214,7 +214,10 @@ int main() {
   int registered = 0, len;
   scewl_hdr_t hdr;
   uint16_t src_id, tgt_id;
-
+  sequence_num messeage_sq;
+  // intialize the sequence numbers to zero
+  memset(&messeage_sq.sq_send, 0, sizeof(messeage_sq.sq_send));
+  memset(&messeage_sq.sq_rceive, 0, sizeof(messeage_sq.sq_rceive));
   // initialize interfaces
   intf_init(CPU_INTF);
   intf_init(SSS_INTF);
