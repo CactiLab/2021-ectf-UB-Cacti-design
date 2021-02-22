@@ -1,22 +1,26 @@
 
 ## Design tasks
 
-1. AES-GCM crypto `c` code implementation [Xi Tan]
+1. AES-GCM crypto `c` code implementation [Xi Tan] [done]
    - **Independent** project without OpenSSL or other libraries
    - No need to run the eCTF project, local implementation is ok
    - 256 bit
-   - Advanced task: change the logic of controller.c to insert message encryption and decryption (AES-GCM part)
-2. RSA crypto `c` code implementation [Gursimran Singh]
+
+1.1 controller.c logic part
+
+1. RSA crypto `c` code implementation [Gursimran Singh]
    - **Independent** project without OpenSSL or other libraries
    - No need to run the eCTF project, local implementation is ok
-   - 256 bit
-   - Advanced task: change the logic of controller.c to insert AES key encryption and decryption (RSA part)
-3. Modify the controller.c for sequence number [Md Armanuzzaman]
+   - 256 bit, 521 bit??
+   - Provide APIs
+
+2. Modify the controller.c for sequence number [Md Armanuzzaman]
    - **Independent** Modify controller.c file to keep track of the paired sequence number
    - The structure to keep track of the sequence number should be indexed by SED ID
    - Values should be updated after each successful transmission
    - Implement the logic according to the design doc to identify any replay attack
-4. RSA crypto `python` code implementation [Ariel]
+  
+3. RSA crypto `python` code implementation [Ariel] [done]
    - Can use python libs: `pip install rsa`
    - No need to run the eCTF project, local implementation is ok
    - Python filename: create_secret.py
@@ -32,11 +36,12 @@
        - usage: python create_secret.py [SCEWL_ID] [op]
        - example: python create_secret.py 12 delete_key
        - output: delete key pair files: SCEWL_ID.pub, SCEWL_ID.pri
-5. Modification of sss.py [Anjie Sun]
+
+5. Modification of sss.py [Anjie Sun, Qiqing Huang]
    1. registration  
        - input: signed message
        - operation
-         - read the SCEWL_ID of the signed message 
+         - read the SCEWL_ID of the signed message [done]
          - check whether the ID is a provisioned SED or not
          - verify the header
          - store the id to the dedicated list
@@ -55,3 +60,4 @@
       - copy the SCEWL_ID.pri to /sed/sed.secret
    - Modification of 3_remove_sed.Dockerfile
       - Delete SCEWL_ID.pub and SCEWL_ID.pri from SSS container (`/secrect`)
+    - check whether those commands work or not.
