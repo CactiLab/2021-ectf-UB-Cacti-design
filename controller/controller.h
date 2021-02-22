@@ -20,7 +20,8 @@
 #include <string.h>
 
 #define SCEWL_MAX_DATA_SZ 0x4000
-
+// change this value when want change max SEDs
+#define max_sequenced_SEDS 256
 // type of a SCEWL ID
 typedef uint16_t scewl_id_t;
 
@@ -50,8 +51,8 @@ typedef struct scewl_sss_msg_t {
 
 // sequence number for each messag 
 typedef struct sequence_num {
-  uint32_t sq_send [256];
-  uint32_t sq_rceive [256];
+  uint32_t sq_send [max_sequenced_SEDS];
+  uint32_t sq_rceive [max_sequenced_SEDS];
 }sequence_num;
 
 // SCEWL status codes
