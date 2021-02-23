@@ -211,7 +211,7 @@ int sss_deregister() {
 }
 
 void add_sequence_number () {
-  printf("%s",buf);
+  
 }
 
 int main() {
