@@ -41,8 +41,8 @@ typedef uint16_t scewl_id_t;
 #define ctLen 16
 #define tagLen 16
 
-#define EXAMPLE_AES_GCM 1
-#define CRYPTO_TEST 1
+// #define EXAMPLE_AES_GCM 1
+// #define CRYPTO_TEST 1
 
 /******************************** start crypto ********************************/
 
