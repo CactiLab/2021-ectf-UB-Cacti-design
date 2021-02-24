@@ -2,11 +2,8 @@
 #  SCEWL Bus Controller Makefile
 #  Ben Janis
 #
-#  (c) 2021 The MITRE Corporation
+#  (c) 2021 Cacti Team
 #
-# This source file is part of an example system for MITRE's 2021 Embedded System CTF (eCTF).
-# This code is being provided only for educational purposes for the 2021 MITRE eCTF competition,
-# and may not meet MITRE standards for quality. Use this code at your own risk!
 
 
 # define the part type and base directory - must be defined for makedefs to work
@@ -60,6 +57,56 @@ CFLAGS+=-DEXAMPLE_AES
 all: ${COMPILER}/aes.o
 endif
 ################ end crypto example ################
+
+################ add aes256-gcm lib ################
+# uncomment next line to activate
+# AES_GCM_TEST
+AES_GCM=foo
+ifdef AES_GCM
+# path to crypto library
+CRYPTOPATH=./aes256-gcm
+
+# add path to crypto source files to source path
+VPATH+=${CRYPTOPATH}
+
+# add crypto library to includes path
+IPATH+=${CRYPTOPATH}
+
+# add crypto object file to includes path
+LDFLAGS+=${COMPILER}/gcm.o aes.o aes-gcm.o
+
+# add compiler flag to enable AES_GCM 
+CFLAGS+=-DAES_GCM
+
+# add rule to build crypto library
+all: ${COMPILER}/gcm.o aes.o aes-gcm.o
+endif
+
+################ add sha256 ################
+
+# path to auth library
+SHA256PATH=./auth
+
+# add path to auth source files to source path
+VPATH+=${SHA256PATH}
+
+# add auth library to includes path
+IPATH+=${SHA256PATH}
+
+# add auth object file to includes path
+LDFLAGS+=${COMPILER}/sha256.o
+
+# add rule to build auth library
+all: ${COMPILER}/sha256.o
+
+
+################ start crypto ################
+MSG_CRYPTO=foo
+KEY_CRYPTO=foo
+#CRYPTO_TEST=foo
+ifdef MSG_CRYPTO
+endif
+################ end crypto ################
 
 # this must be the last build rule of `all`
 all: ${COMPILER}/controller.axf

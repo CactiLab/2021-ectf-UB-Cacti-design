@@ -1,151 +1,144 @@
-#  2021 Collegiate eCTF
-#  SCEWL Bus Controller Makefile
-#  Ben Janis
+# 2021 Collegiate eCTF
+# Top level Makefile
+# Ben Janis
 #
-#  (c) 2021 Cacti Team
+# (c) 2021 The MITRE Corporation
 #
+# This source file is part of an example system for MITRE's 2021 Embedded System CTF (eCTF).
+# This code is being provided only for educational purposes for the 2021 MITRE eCTF competition,
+# and may not meet MITRE standards for quality. Use this code at your own risk!
+#
+# NOTE: THIS FILE SHOULD NOT BE MODIFIED
 
 
-# define the part type and base directory - must be defined for makedefs to work
-PART=LM3S6965
-ROOT=.
-
-# include the common make definitions
-include lm3s/makedefs
-
-# add additional directories to search for source files to VPATH
-VPATH=lm3s
-
-# add additional directories to search for header files to IPATH
-IPATH=${ROOT}
-IPATH+=${ROOT}/CMSIS/Include
-IPATH+=${VPATH}
-
-# add flags to pass to the compiler
-CFLAGS+=-DSCEWL_ID=${SCEWL_ID}
-
-# this rule must come first in `all`
-all: ${COMPILER}
-
-# for each source file that needs to be compiled besides
-# the file that defines `main`, add the next two lines 
-LDFLAGS+=${COMPILER}/interface.o
-all: ${COMPILER}/interface.o
-
-################ start crypto example ################
-# example AES rules to build in tiny-AES-c: https://github.com/kokke/tiny-AES-c
-# make sure submodule has been pulled (run `git submodule update --init`)
-# uncomment next line to activate
-# EXAMPLE_AES=foo
-ifdef EXAMPLE_AES
-# path to crypto library
-CRYPTOPATH=./tiny-AES-c
-
-# add path to crypto source files to source path
-VPATH+=${CRYPTOPATH}
-
-# add crypto library to includes path
-IPATH+=${CRYPTOPATH}
-
-# add crypto object file to includes path
-LDFLAGS+=${COMPILER}/aes.o
-
-# add compiler flag to enable example AES code 
-CFLAGS+=-DEXAMPLE_AES
-
-# add rule to build crypto library
-all: ${COMPILER}/aes.o
-endif
-################ end crypto example ################
-
-################ add aes256-gcm lib ################
-# uncomment next line to activate
-# AES_GCM_TEST
-AES_GCM=foo
-ifdef AES_GCM
-# path to crypto library
-CRYPTOPATH=./aes256-gcm
-
-# add path to crypto source files to source path
-VPATH+=${CRYPTOPATH}
-
-# add crypto library to includes path
-IPATH+=${CRYPTOPATH}
-
-# add crypto object file to includes path
-LDFLAGS+=${COMPILER}/gcm.o aes.o aes-gcm.o
-
-# add compiler flag to enable AES_GCM 
-CFLAGS+=-DAES_GCM
-
-# add rule to build crypto library
-all: ${COMPILER}/gcm.o aes.o aes-gcm.o
-endif
-
-################ add sha256 ################
-
-# path to auth library
-SHA256PATH=./auth
-
-# add path to auth source files to source path
-VPATH+=${SHA256PATH}
-
-# add auth library to includes path
-IPATH+=${SHA256PATH}
-
-# add auth object file to includes path
-LDFLAGS+=${COMPILER}/sha256.o
-
-# add rule to build auth library
-all: ${COMPILER}/sha256.o
-
-
-################ start crypto ################
-MSG_CRYPTO=foo
-KEY_CRYPTO=foo
-#CRYPTO_TEST=foo
-ifdef MSG_CRYPTO
-endif
-################ end crypto ################
-
-# this must be the last build rule of `all`
-all: ${COMPILER}/controller.axf
-
-# clean all build products
-clean:
-	@rm -rf ${COMPILER} ${wildcard *~}
-
-# create the output directory
-${COMPILER}:
-	@mkdir ${COMPILER}
-
-# check that SCEWL_ID is defined
+# function to check required arguments
 check_defined = \
     $(strip $(foreach 1,$1, \
         $(call __check_defined,$1)))
 __check_defined = \
     $(if $(value $1),, \
       $(error Undefined $1))
-arg_check:
-	$(call check_defined, SCEWL_ID)
 
-${COMPILER}/controller.axf: arg_check
-${COMPILER}/controller.axf: ${COMPILER}/controller.o
-${COMPILER}/controller.axf: ${COMPILER}/startup_${COMPILER}.o
-${COMPILER}/controller.axf: ${COMPILER}/system_lm3s.o
-ifeq (${COMPILER}, gcc)
-${COMPILER}/controller.axf: lm3s/controller.ld
-endif
-SCATTERgcc_controller=lm3s/controller.ld
-ifeq (${COMPILER}, sourcerygxx)
-${COMPILER}/controller.axf: controller_sourcerygxx.ld
-endif
-SCATTERsourcerygxx_controller=lm3s6965-rom.ld -T controller_sourcerygxx.ld
-ENTRY_controller=Reset_Handler
+# Step 0: Create the radio waves emulator
+# does not need to be run by your team, as we have pushed
+# an image of this container to Docker Hub
+create_radio:
+        docker build radio \
+                -f dockerfiles/0_create_radio.Dockerfile \
+                -t ectf/ectf-radio:latest
 
-#
-# Include the automatically generated dependency files.
-#
-ifneq (${MAKECMDGOALS},clean)
--include ${wildcard ${COMPILER}/*.d} __dummy__
-endif
+############################################################
+# Step 1: Build the base images for the SSS and SEDs
+create_deployment:
+        $(call check_defined, DEPLOYMENT)
+        docker build sss \
+                -f dockerfiles/1a_create_sss.Dockerfile \
+                -t ${DEPLOYMENT}/sss
+        docker build controller \
+                -f dockerfiles/1b_create_controller_base.Dockerfile \
+                -t ${DEPLOYMENT}/controller:base
+
+############################################################
+# Step 2: Add a SED to the deployment
+add_sed:
+        $(call check_defined, DEPLOYMENT SED SCEWL_ID NAME)
+        docker build cpu \
+                -f dockerfiles/2a_build_cpu.Dockerfile \
+                -t ${DEPLOYMENT}/cpu:${NAME}_${SCEWL_ID} \
+                --build-arg SED=${SED} \
+                --build-arg SCEWL_ID=${SCEWL_ID} \
+                --build-arg CUSTOM=$(CUSTOM)
+        docker build sss \
+                -f dockerfiles/2b_create_sed_secrets.Dockerfile \
+                -t ${DEPLOYMENT}/sss \
+                --build-arg DEPLOYMENT=${DEPLOYMENT} \
+                --build-arg SCEWL_ID=${SCEWL_ID}
+        docker build controller \
+                -f dockerfiles/2c_build_controller.Dockerfile \
+                -t ${DEPLOYMENT}/controller:${NAME}_${SCEWL_ID} \
+                --build-arg DEPLOYMENT=${DEPLOYMENT} \
+                --build-arg SCEWL_ID=${SCEWL_ID}
+
+############################################################
+# Step 3: Remove an SED from the deployment
+remove_sed:
+        $(call check_defined, DEPLOYMENT SCEWL_ID NAME)
+        docker rmi -f ${DEPLOYMENT}/cpu:${NAME}_${SCEWL_ID}
+        docker rmi -f ${DEPLOYMENT}/controller:${NAME}_${SCEWL_ID}
+        docker build sss \
+                -f dockerfiles/3_remove_sed.Dockerfile \
+                -t ${DEPLOYMENT}/sss \
+                --build-arg DEPLOYMENT=${DEPLOYMENT} \
+                --build-arg SCEWL_ID=${SCEWL_ID}
+
+############################################################
+# Step 4: Launch the radio and SSS
+deploy: launch_radio_d launch_sss_d
+
+# launch the radio waves emulator
+launch_radio:
+        $(call check_defined, DEPLOYMENT FAA_SOCK MITM_SOCK START_ID END_ID SOCK_ROOT)
+        docker run $(DOCKOPT) -v $(SOCK_ROOT):/socks ectf/ectf-radio \
+                python3 -u /radio.py $(START_ID) $(END_ID) $(FAA_SOCK) $(MITM_SOCK)
+
+# launch the radio waves emulator detatched
+launch_radio_d: DOCKOPT=-d
+launch_radio_d: launch_radio
+
+# launch the SSS
+launch_sss:
+        $(call check_defined, DEPLOYMENT SOCK_ROOT)
+        docker run $(DOCKOPT) -v $(SOCK_ROOT):/socks $(DEPLOYMENT)/sss \
+                /sss /socks/sss.sock
+
+# launch the SSS detatched
+launch_sss_d: DOCKOPT=-d
+launch_sss_d: launch_sss
+
+############################################################
+# Step 5: Launch an SED
+launch_sed:
+        $(call check_defined, DEPLOYMENT SCEWL_ID NAME SOCK_ROOT)
+        GDB=$(GDB) SC=$(SC) CONT_DOCK_OPT=$(CONT_DOCK_OPT) CPU_DOCK_OPT=$(CPU_DOCK_OPT) ./tools/launch_sed.sh $(BG)
+
+launch_sed_d: BG=& 2>/dev/null >/dev/null
+launch_sed_d: launch_sed
+
+launch_sed_i: CPU_DOCK_OPT=-i
+launch_sed_i: launch_sed
+
+launch_sed_gdb: GDB='-gdb unix:/socks/gdb.sock,server'
+launch_sed_gdb: launch_sed
+
+launch_sed_sc: SC=sc-
+launch_sed_sc: CONT_DOCK_OPT='--network host'
+launch_sed_sc: launch_sed_d
+
+############################################################
+# launch FAA transceiver
+launch_faa:
+        $(call check_defined, FAA_SOCK)
+        python3 tools/faa.py $(FAA_SOCK)
+
+############################################################
+# launch MitM transceiver
+launch_mitm:
+        $(call check_defined, MITM_SOCK)
+        python3 tools/mitm.py $(MITM_SOCK)
+
+############################################################
+# creates a side channel container
+create_sc_container:
+        $(call check_defined, DEPLOYMENT SCEWL_ID NAME)
+        docker build controller \
+                -f dockerfiles/4_create_sc_controller.Dockerfile \
+                -t ${DEPLOYMENT}/sc-controller:${NAME}_${SCEWL_ID} \
+                --build-arg DEPLOYMENT=${DEPLOYMENT} \
+                --build-arg NAME=${NAME} \
+                --build-arg SCEWL_ID=${SCEWL_ID}
+
+############################################################
+# clean up the repo
+clean: seds/* scewl_bus_driver scewl_bus_controller
+        for file in $^; do make -C $$file clean; done
+        -rm *.sock 2>&1
