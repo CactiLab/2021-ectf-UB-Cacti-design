@@ -238,28 +238,37 @@ int add_sequence_number (scewl_id_t receiver_SED, int len) {
 // sprintf(char_sq_num, "%ld", updated_sq_num);
   char temp_buf[SCEWL_MAX_DATA_SZ];
   uint32_t updated_sq_num = ++messeage_sq.sq_send[receiver_SED];
+
   memset(char_sq_num, '0' ,sizeof(char_sq_num));
+
   for (i = 9; i >= 0; --i, updated_sq_num/=10) {
       char_sq_num[i] = (updated_sq_num % 10) + '0';
   }
+
   memcpy(temp_buf, buf, sizeof(buf));
   memcpy(buf, char_sq_num ,10);
   memcpy(buf + 10, temp_buf, sizeof(temp_buf));
   len = len + 10;
+  
   return len;
 }
+
 bool strip_and_check_sequence_number (scewl_id_t source_SED) {
-   char received_suqence[10];
-   int received_sq_number;
-   memcpy(received_suqence, buf, 10);
-   received_sq_number = atoi(received_suqence);
-   if (messeage_sq.sq_receive[source_SED] < received_sq_number) {
-   	messeage_sq.sq_receive[source_SED] = received_sq_number;
-	memcpy(buf, buf+10, sizeof(buf) - 10);
-	return true;
-   }
-   return false;
+  char received_suqence[10];
+  int received_sq_number;
+
+  memcpy(received_suqence, buf, 10);
+  received_sq_number = atoi(received_suqence);
+
+  if (messeage_sq.sq_receive[source_SED] < received_sq_number) {
+    messeage_sq.sq_receive[source_SED] = received_sq_number;
+    memcpy(buf, buf+10, sizeof(buf) - 10);
+    return true;
+  }
+
+  return false;
 }
+
 int main() {
   int registered = 0, len;
   scewl_hdr_t hdr;
@@ -404,6 +413,12 @@ int main() {
           } else if (tgt_id == SCEWL_ID) {
             // receive unicast message
             if (src_id == SCEWL_FAA_ID) {
+              /*if (strip_and_check_sequence_number(src_id)) {
+			            //memcpy(buf, "VAlid", 5);
+			            len = len - 10;
+	            } else {
+			            memcpy(buf, "Invalid sequence", sizeof("Invalid sequence"));
+	            }*/
               handle_faa_recv(buf, len);
             } else {
               handle_scewl_recv(buf, src_id, len);
