@@ -26,7 +26,8 @@ char int2char(uint8_t i) {
 
 // message buffer
 char buf[SCEWL_MAX_DATA_SZ];
-
+//sequence number structure
+sequence_num messeage_sq;
 int key_cryption()
 {
 
@@ -236,15 +237,39 @@ int sss_deregister() {
   return msg.op == SCEWL_SSS_DEREG;
 }
 
-void add_sequence_number () {
-  
+int add_sequence_number (scewl_id_t receiver_SED, int len) {
+  char char_sq_num[10];
+  int  i;
+// sprintf(char_sq_num, "%ld", updated_sq_num);
+  char temp_buf[SCEWL_MAX_DATA_SZ];
+  uint32_t updated_sq_num = ++messeage_sq.sq_send[receiver_SED];
+  memset(char_sq_num, '0' ,sizeof(char_sq_num));
+  for (i = 9; i >= 0; --i, updated_sq_num/=10) {
+      char_sq_num[i] = (updated_sq_num % 10) + '0';
+  }
+  memcpy(temp_buf, buf, sizeof(buf));
+  memcpy(buf, char_sq_num ,10);
+  memcpy(buf + 10, temp_buf, sizeof(temp_buf));
+  len = len + 10;
+  return len;
 }
-
+bool strip_and_check_sequence_number (scewl_id_t source_SED) {
+   char received_suqence[10];
+   int received_sq_number;
+   memcpy(received_suqence, buf, 10);
+   received_sq_number = atoi(received_suqence);
+   if (messeage_sq.sq_receive[source_SED] < received_sq_number) {
+   	messeage_sq.sq_receive[source_SED] = received_sq_number;
+	memcpy(buf, buf+10, sizeof(buf) - 10);
+	return true;
+   }
+   return false;
+}
 int main() {
   int registered = 0, len;
   scewl_hdr_t hdr;
   uint16_t src_id, tgt_id;
-  sequence_num messeage_sq;
+
   // intialize the sequence numbers to zero
   memset(&messeage_sq.sq_send, 0, sizeof(messeage_sq.sq_send));
   memset(&messeage_sq.sq_receive, 0, sizeof(messeage_sq.sq_receive));
@@ -362,9 +387,10 @@ int main() {
         } else if (tgt_id == SCEWL_SSS_ID) {
           registered = handle_registration(buf);
         } else if (tgt_id == SCEWL_FAA_ID) {
-          add_sequence_number();
+          //len =  add_sequence_number(tgt_id, len);
           handle_faa_send(buf, len);
         } else {
+          //add_sequence_number(tgt_id, len);
           handle_scewl_send(buf, tgt_id, len);
         }
 

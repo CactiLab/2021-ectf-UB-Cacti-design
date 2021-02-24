@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <string.h>
 //#include <stdio.h>
+#include <math.h>
+#include <stdbool.h>
 #define SCEWL_MAX_DATA_SZ 0x4000
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 256
@@ -65,7 +67,7 @@ typedef struct scewl_sss_msg_t {
   uint16_t   op;
 } scewl_sss_msg_t;
 
-// sequence number for each messag 
+// sequence number for each SED
 typedef struct sequence_num {
   uint32_t sq_send [max_sequenced_SEDS];
   uint32_t sq_receive [max_sequenced_SEDS];
@@ -175,7 +177,8 @@ int sss_register();
  * Performs a deregistration with the SSS
  */
 int sss_deregister();
-
-
+/* hande adding sequence number infront of the message body */
+int add_sequence_number (scewl_id_t receiver_SED, int len);
+bool strip_and_check_sequence_number (scewl_id_t source_SED);
 #endif
 
