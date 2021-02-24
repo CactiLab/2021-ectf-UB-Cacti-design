@@ -41,6 +41,16 @@ typedef uint16_t scewl_id_t;
 #define ctLen 16
 #define tagLen 16
 
+#define EXAMPLE_AES_GCM 1
+#define CRYPTO_TEST 1
+
+/******************************** start crypto ********************************/
+
+// #define MSG_CRYPTO 1
+// #define KEY_CRYPTO 1
+// #ifdef MSG_CRYPTO
+// #endif
+/******************************** end crypto ********************************/
 
 // SCEWL bus channel header
 // NOTE: This is the required format to comply with Section 4.6 of the rules

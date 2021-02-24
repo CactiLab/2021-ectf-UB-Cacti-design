@@ -60,7 +60,6 @@ endif
 
 ################ add aes256-gcm lib ################
 # uncomment next line to activate
-# AES_GCM_TEST
 AES_GCM=foo
 ifdef AES_GCM
 # path to crypto library
@@ -98,15 +97,6 @@ LDFLAGS+=${COMPILER}/sha256.o
 
 # add rule to build auth library
 all: ${COMPILER}/sha256.o
-
-
-################ start crypto ################
-MSG_CRYPTO=foo
-KEY_CRYPTO=foo
-#CRYPTO_TEST=foo
-ifdef MSG_CRYPTO
-endif
-################ end crypto ################
 
 # this must be the last build rule of `all`
 all: ${COMPILER}/controller.axf
