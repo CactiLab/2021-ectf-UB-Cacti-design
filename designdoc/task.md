@@ -2,7 +2,7 @@
 1. RSA crypto `c` code implementation [Gursimran Singh]
    - Standalone project without OpenSSL
    - No need to run the eCTF project, local implementation is ok
-   - 256 bit, 521 bit??
+   - 256 bit, 512 bit??
    - APIs
 
 2. Modify the controller.c for sequence number [Md Armanuzzaman]

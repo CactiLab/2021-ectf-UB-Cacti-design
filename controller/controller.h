@@ -3,11 +3,8 @@
  * SCEWL Bus Controller header
  * Ted Clifford
  *
- * (c) 2021 The MITRE Corporation
+ * (c) 2021 Cacti Team
  *
- * This source file is part of an example system for MITRE's 2021 Embedded System CTF (eCTF).
- * This code is being provided only for educational purposes for the 2021 MITRE eCTF competition,
- * and may not meet MITRE standards for quality. Use this code at your own risk!
  */
 
 #ifndef CONTROLLER_H
@@ -18,7 +15,7 @@
 
 #include <stdint.h>
 #include <string.h>
-
+//#include <stdio.h>
 #define SCEWL_MAX_DATA_SZ 0x4000
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 256
@@ -31,6 +28,17 @@ typedef uint16_t scewl_id_t;
 #define SCEWL_ID 0
 #endif
 
+#define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
+#define BLOCK_SIZE 16
+#define CRYPTO_SIZE 16
+
+#define keyLen 32
+#define ivLen 12
+#define aadLen 0
+#define ptLen 16
+#define ctLen 16
+#define tagLen 16
+
 
 // SCEWL bus channel header
 // NOTE: This is the required format to comply with Section 4.6 of the rules
@@ -42,6 +50,14 @@ typedef struct scewl_hdr_t {
   uint16_t len;
   /* data follows */
 } scewl_hdr_t;
+
+// message format: | scewl_header | AENCpk(ka) | IV | ENC(ka, iva)(header + message) |
+typedef struct scewl_msg_t {
+  scewl_hdr_t scewl_hdr;
+  uint8_t aes_key[keyLen];      // asymmetric encrypted aes key
+  uint8_t iv[ivLen];           // 
+  uint8_t body[];
+} scewl_msg_t;
 
 // registration message
 typedef struct scewl_sss_msg_t {

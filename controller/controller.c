@@ -3,18 +3,20 @@
  * SCEWL Bus Controller implementation
  * Ben Janis
  *
- * (c) 2021 The MITRE Corporation
+ * (c) 2021 Cacti Team
  *
- * This source file is part of an example system for MITRE's 2021 Embedded System CTF (eCTF).
- * This code is being provided only for educational purposes for the 2021 MITRE eCTF competition,
- * and may not meet MITRE standards for quality. Use this code at your own risk!
  */
 
+#include <stdlib.h>
+#include <time.h>
 #include "controller.h"
+#include "sha256.h"
 
-// this will run if EXAMPLE_AES is defined in the Makefile (see line 54)
+// this will run if EXAMPLE_AES is defined in the Makefile
 #ifdef EXAMPLE_AES
 #include "aes.h"
+#elif AES_GCM
+#include "aes-gcm.h"
 
 char int2char(uint8_t i) {
   char *hex = "0123456789abcdef";
@@ -22,12 +24,33 @@ char int2char(uint8_t i) {
 }
 #endif
 
-#define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
-#define BLOCK_SIZE 16
-
 // message buffer
 char buf[SCEWL_MAX_DATA_SZ];
 
+int key_cryption()
+{
+
+  return 0;
+}
+
+// int body_encrypt_tag(intf_t *intf, char *data, uint16_t len)
+int body_encrypt_tag()
+{
+  uint8_t aes_key[keyLen];
+  int seed = 0;
+  
+  memset(aes_key, 0, keyLen);
+
+  srand((unsigned int)aes_key);
+  seed = rand();
+
+  SHA256_Simple((const void *)seed, 32, aes_key);
+  send_str("AES key:");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyLen, (char *)aes_key);
+  #ifdef KEY_CRYPTO
+  #endif
+  return 0;
+}
 
 int read_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id,
              size_t n, int blocking) {
@@ -103,6 +126,9 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // send body
+  #ifdef MSG_CRYPTO
+    body_encrypt_tag(intf, data, len);
+  #endif
   intf_write(intf, data, len);
 
   return SCEWL_OK;
@@ -246,6 +272,66 @@ int main() {
   send_str("Example decrypted message:");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)plaintext);
   // end example
+#endif
+
+#ifdef AES_GCM_TEST
+// example encryption using aes-gcm 
+    const uint8_t key[32] = {   0x31, 0xbd, 0xad, 0xd9, 
+                                0x66, 0x98, 0xc2, 0x04, 
+                                0xaa, 0x9c, 0xe1, 0x44,
+                                0x8e, 0xa9, 0x4a, 0xe1, 
+                                0xfb, 0x4a, 0x9a, 0x0b, 
+                                0x3c, 0x9d, 0x77, 0x3b, 
+                                0x51, 0xbb, 0x18, 0x22, 
+                                0x66, 0x6b, 0x8f, 0x22  };
+
+    const uint8_t iv[12] = {    0x0d, 0x18, 0xe0, 0x6c, 
+                                0x7c, 0x72, 0x5a, 0xc9, 
+                                0xe3, 0x62, 0xe1, 0xce};
+
+    const uint8_t pt[16] = {    0x2d, 0xb5, 0x16, 0x8e,
+                                0x93, 0x25, 0x56, 0xf8,
+                                0x08, 0x9a, 0x06, 0x22,
+                                0x98, 0x1d, 0x01, 0x7d};
+
+    const uint8_t ct[16] = {      0xfa, 0x43, 0x62, 0x18, 
+                                  0x96, 0x61, 0xd1, 0x63, 
+                                  0xfc, 0xd6, 0xa5, 0x6d, 
+                                  0x8b, 0xf0, 0x40, 0x5a};
+
+    uint8_t tag[16];
+    uint8_t output[ctLen];
+
+    memset(tag, 0, 16);
+    memset(output, 0, 16);
+    
+    // initialize context
+    gcm_initialize();
+
+    // encrypt buffer (encryption happens in place)
+    ret = aes_gcm_encrypt_tag(output, pt, ptLen, key, keyLen, iv, ivLen, tag, tagLen);
+    send_str("ciphertext:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)output);
+    send_str("tag:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)tag);
+
+    memset(output, 0, 16);
+
+    // decrypt buffer (decryption happens in place)
+    ret = aes_gcm_decrypt_auth(output, ct, ctLen, key, keyLen, iv, ivLen, tag, tagLen);
+    if (ret != 0)
+    {
+        send_str("Authentication Failure!");
+        return (-1);
+    }
+    
+    send_str("Authentication Success!\n");
+    send_str("plaintext:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)output);
+  // end example
+#endif
+#ifdef CRYPTO_TEST
+  body_encrypt_tag();
 #endif
 
   // serve forever
