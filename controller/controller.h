@@ -55,8 +55,9 @@ typedef uint16_t scewl_id_t;
 
 // SCEWL bus channel header
 // NOTE: This is the required format to comply with Section 4.6 of the rules
-typedef struct scewl_hdr_t {
-  uint8_t magicS;  // all messages must start with the magic code "SC"
+typedef struct scewl_hdr_t
+{
+  uint8_t magicS; // all messages must start with the magic code "SC"
   uint8_t magicC;
   scewl_id_t tgt_id;
   scewl_id_t src_id;
@@ -66,41 +67,63 @@ typedef struct scewl_hdr_t {
 
 // message format: | scewl_header | AENCpk(ka) | IV | tag | ENC(ka, iva)(header + message) |
 // size: keyLen + ivLen + tagLen + bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
-typedef struct scewl_msg_hdr_t { 
+typedef struct scewl_msg_hdr_t
+{
   // scewl_hdr_t scewl_hdr;
-  uint8_t aes_key[keyLen];      // asymmetric encrypted aes key
-  uint8_t iv[ivLen];           // 
+  uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
+  uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
   // uint8_t body[];
 } scewl_msg_hdr_t;
 
 // registration message
-typedef struct scewl_sss_msg_t {
+typedef struct scewl_sss_msg_t
+{
   scewl_id_t dev_id;
-  uint16_t   op;
+  uint16_t op;
 } scewl_sss_msg_t;
 
 // sequence number for each SED
-typedef struct sequence_num {
-  uint32_t sq_send [max_sequenced_SEDS];
-  uint32_t sq_receive [max_sequenced_SEDS];
-}sequence_num;
+typedef struct sequence_num
+{
+  uint32_t sq_send[max_sequenced_SEDS];
+  uint32_t sq_receive[max_sequenced_SEDS];
+} sequence_num;
 
 // SCEWL status codes
-enum scewl_status { SCEWL_ERR = -1, SCEWL_OK, SCEWL_ALREADY, SCEWL_NO_MSG };
+enum scewl_status
+{
+  SCEWL_ERR = -1,
+  SCEWL_OK,
+  SCEWL_ALREADY,
+  SCEWL_NO_MSG
+};
 
 // registration/deregistration options
-enum scewl_sss_op_t { SCEWL_SSS_ALREADY = -1, SCEWL_SSS_REG, SCEWL_SSS_DEREG };
+enum scewl_sss_op_t
+{
+  SCEWL_SSS_ALREADY = -1,
+  SCEWL_SSS_REG,
+  SCEWL_SSS_DEREG
+};
 
 // reserved SCEWL IDs
-enum scewl_ids { SCEWL_BRDCST_ID, SCEWL_SSS_ID, SCEWL_FAA_ID };
+enum scewl_ids
+{
+  SCEWL_BRDCST_ID,
+  SCEWL_SSS_ID,
+  SCEWL_FAA_ID
+};
 
 // message auth
-enum msg_auth_status { FAILURE = -1, SUCCESS };
-
+enum msg_auth_status
+{
+  FAILURE = -1,
+  SUCCESS
+};
 
 // int msg_encrypt_tag()
-int msg_encrypt_tag(intf_t *intf, char *data, scewl_hdr_t * hdr, scewl_msg_hdr_t *crypto_msg);
+int msg_encrypt_tag(intf_t *intf, char *data, scewl_hdr_t *hdr, scewl_msg_hdr_t *crypto_msg);
 int msg_encrypt_tag_test();
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
@@ -140,21 +163,21 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
  * 
  * Interprets a SCEWL tranmission from another SED and sends the message to the CPU
  */
-int handle_scewl_recv(char* data, scewl_id_t src_id, uint16_t len);
+int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len);
 
 /*
  * handle_scewl_send
  * 
  * Sends a message to another SED from the CPU
  */
-int handle_scewl_send(char* buf, scewl_id_t tgt_id, uint16_t len);
+int handle_scewl_send(char *buf, scewl_id_t tgt_id, uint16_t len);
 
 /*
  * handle_brdcst_recv
  * 
  * Interprets a broadcast message from another SED and passes it to the CPU
  */
-int handle_brdcst_recv(char* data, scewl_id_t src_id, uint16_t len);
+int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len);
 
 /*
  * handle_brdcst_send
@@ -168,14 +191,14 @@ int handle_brdcst_send(char *data, uint16_t len);
  * 
  * Receives an FAA message from the antenna and passes it to the CPU
  */
-int handle_faa_recv(char* data, uint16_t len);
+int handle_faa_recv(char *data, uint16_t len);
 
 /*
  * handle_faa_send
  * 
  * Sends an FAA message from the CPU to the antenna
  */
-int handle_faa_send(char* data, uint16_t len);
+int handle_faa_send(char *data, uint16_t len);
 
 /*
  * handle_registration
@@ -185,7 +208,7 @@ int handle_faa_send(char* data, uint16_t len);
  * args:
  *   op - pointer to the operation message received by the CPU
  */
-int handle_registration(char* op);
+int handle_registration(char *op);
 
 /*
  * sss_register
@@ -201,7 +224,6 @@ int sss_register();
  */
 int sss_deregister();
 /* hande adding sequence number infront of the message body */
-int add_sequence_number (scewl_id_t receiver_SED, int len);
-bool strip_and_check_sequence_number (scewl_id_t source_SED);
+int add_sequence_number(scewl_id_t receiver_SED, int len);
+bool strip_and_check_sequence_number(scewl_id_t source_SED);
 #endif
-
