@@ -40,6 +40,7 @@ typedef uint16_t scewl_id_t;
 #define ptLen 16
 #define ctLen 16
 #define tagLen 16
+#define msgHeader 60
 
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
@@ -63,13 +64,15 @@ typedef struct scewl_hdr_t {
   /* data follows */
 } scewl_hdr_t;
 
-// message format: | scewl_header | AENCpk(ka) | IV | ENC(ka, iva)(header + message) |
-typedef struct scewl_msg_t {
-  scewl_hdr_t scewl_hdr;
+// message format: | scewl_header | AENCpk(ka) | IV | tag | ENC(ka, iva)(header + message) |
+// size: keyLen + ivLen + tagLen + bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
+typedef struct scewl_msg_hdr_t { 
+  // scewl_hdr_t scewl_hdr;
   uint8_t aes_key[keyLen];      // asymmetric encrypted aes key
   uint8_t iv[ivLen];           // 
-  uint8_t body[];
-} scewl_msg_t;
+  uint8_t tag[tagLen];
+  // uint8_t body[];
+} scewl_msg_hdr_t;
 
 // registration message
 typedef struct scewl_sss_msg_t {
@@ -92,6 +95,16 @@ enum scewl_sss_op_t { SCEWL_SSS_ALREADY = -1, SCEWL_SSS_REG, SCEWL_SSS_DEREG };
 // reserved SCEWL IDs
 enum scewl_ids { SCEWL_BRDCST_ID, SCEWL_SSS_ID, SCEWL_FAA_ID };
 
+// message auth
+enum msg_auth_status { FAILURE = -1, SUCCESS };
+
+
+// int msg_encrypt_tag()
+int msg_encrypt_tag(intf_t *intf, char *data, scewl_hdr_t * hdr, scewl_msg_hdr_t *crypto_msg);
+int msg_encrypt_tag_test();
+
+int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id, size_t n, int blocking);
 /*
  * read_msg
  *
