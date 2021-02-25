@@ -38,7 +38,6 @@ int key_cryption()
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
   scewl_hdr_t hdr;
-  
 
   // pack header
   hdr.magicS = 'S';
@@ -51,17 +50,17 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   scewl_msg_hdr_t crypto_msg_hdr;
   // int ret = 0;
   uint8_t key[32] = {0x31, 0xbd, 0xad, 0xd9,
-                           0x66, 0x98, 0xc2, 0x04,
-                           0xaa, 0x9c, 0xe1, 0x44,
-                           0x8e, 0xa9, 0x4a, 0xe1,
-                           0xfb, 0x4a, 0x9a, 0x0b,
-                           0x3c, 0x9d, 0x77, 0x3b,
-                           0x51, 0xbb, 0x18, 0x22,
-                           0x66, 0x6b, 0x8f, 0x22};
+                     0x66, 0x98, 0xc2, 0x04,
+                     0xaa, 0x9c, 0xe1, 0x44,
+                     0x8e, 0xa9, 0x4a, 0xe1,
+                     0xfb, 0x4a, 0x9a, 0x0b,
+                     0x3c, 0x9d, 0x77, 0x3b,
+                     0x51, 0xbb, 0x18, 0x22,
+                     0x66, 0x6b, 0x8f, 0x22};
 
   uint8_t iv[12] = {0x0d, 0x18, 0xe0, 0x6c,
-                          0x7c, 0x72, 0x5a, 0xc9,
-                          0xe3, 0x62, 0xe1, 0xce};
+                    0x7c, 0x72, 0x5a, 0xc9,
+                    0xe3, 0x62, 0xe1, 0xce};
 
   // uint8_t pt[16] = {0x2d, 0xb5, 0x16, 0x8e,
   //                         0x93, 0x25, 0x56, 0xf8,
@@ -82,14 +81,14 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memset(plaintext, 0, len);
   memset(&crypto_msg_hdr, 0, sizeof(crypto_msg_hdr));
 
-   memcpy(crypto_msg_hdr.aes_key, key, keyLen);
-   memcpy(crypto_msg_hdr.iv, iv, ivLen);
+  memcpy(crypto_msg_hdr.aes_key, key, keyLen);
+  memcpy(crypto_msg_hdr.iv, iv, ivLen);
 
   // initialize context
   gcm_initialize();
 
   // encrypt buffer (encryption happens in place)
-  aes_gcm_encrypt_tag(ciphertext, (const uint8_t*)data, ptLen, crypto_msg_hdr.aes_key, keyLen, crypto_msg_hdr.iv, ivLen, crypto_msg_hdr.tag, tagLen);
+  aes_gcm_encrypt_tag(ciphertext, (const uint8_t *)data, ptLen, crypto_msg_hdr.aes_key, keyLen, crypto_msg_hdr.iv, ivLen, crypto_msg_hdr.tag, tagLen);
   memcpy(data, ciphertext, len);
   // send_str("key:\n");
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyLen, (char *)crypto_msg_hdr.aes_key);
@@ -111,17 +110,16 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   // send_str("plaintext:\n");
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)plaintext);
 
-
 #ifdef KEY_CRYPTO
 #endif
 #endif
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
-  #ifdef MSG_CRYPTO
+#ifdef MSG_CRYPTO
   // send msg_header
-  intf_write(intf, (char *)&crypto_msg_hdr, sizeof(scewl_msg_hdr_t));  
-  #endif
+  intf_write(intf, (char *)&crypto_msg_hdr, sizeof(scewl_msg_hdr_t));
+#endif
 
   // send body
   intf_write(intf, data, len);
@@ -130,7 +128,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 }
 
 int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id,
-             size_t n, int blocking)
+                  size_t n, int blocking)
 {
   scewl_hdr_t hdr;
   int read, max;
@@ -173,12 +171,11 @@ int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_
   *src_id = hdr.src_id;
   *tgt_id = hdr.tgt_id;
 
-
-  #ifdef MSG_CRYPTO
+#ifdef MSG_CRYPTO
   scewl_msg_hdr_t crypto_msg_hdr;
   int ret = 0;
-  uint8_t aes_key[keyLen];      // asymmetric encrypted aes key
-  uint8_t iv[ivLen];           
+  uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
+  uint8_t iv[ivLen];
   uint8_t tag[tagLen];
   uint8_t *plaintext = NULL;
 
@@ -193,7 +190,7 @@ int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_
   memcpy(aes_key, crypto_msg_hdr.aes_key, keyLen);
   memcpy(iv, crypto_msg_hdr.iv, ivLen);
   memcpy(tag, crypto_msg_hdr.tag, tagLen);
-  #endif
+#endif
 
   // read body
   max = hdr.len < n ? hdr.len : n;
@@ -275,8 +272,8 @@ int read_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id,
   max = hdr.len < n ? hdr.len : n;
   read = intf_read(intf, data, max, blocking);
 
-  #ifdef MSG_CRYPTO
-  #endif
+#ifdef MSG_CRYPTO
+#endif
 
   // throw away rest of message if too long
   for (int i = 0; hdr.len > max && i < hdr.len - max; i++)
@@ -307,7 +304,7 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
-// send body
+  // send body
   intf_write(intf, data, len);
 
   return SCEWL_OK;
@@ -502,27 +499,27 @@ int main()
   scewl_msg_hdr_t crypto_msg_hdr;
   int ret = 0;
   uint8_t key[32] = {0x31, 0xbd, 0xad, 0xd9,
-                           0x66, 0x98, 0xc2, 0x04,
-                           0xaa, 0x9c, 0xe1, 0x44,
-                           0x8e, 0xa9, 0x4a, 0xe1,
-                           0xfb, 0x4a, 0x9a, 0x0b,
-                           0x3c, 0x9d, 0x77, 0x3b,
-                           0x51, 0xbb, 0x18, 0x22,
-                           0x66, 0x6b, 0x8f, 0x22};
+                     0x66, 0x98, 0xc2, 0x04,
+                     0xaa, 0x9c, 0xe1, 0x44,
+                     0x8e, 0xa9, 0x4a, 0xe1,
+                     0xfb, 0x4a, 0x9a, 0x0b,
+                     0x3c, 0x9d, 0x77, 0x3b,
+                     0x51, 0xbb, 0x18, 0x22,
+                     0x66, 0x6b, 0x8f, 0x22};
 
   uint8_t iv[12] = {0x0d, 0x18, 0xe0, 0x6c,
-                          0x7c, 0x72, 0x5a, 0xc9,
-                          0xe3, 0x62, 0xe1, 0xce};
+                    0x7c, 0x72, 0x5a, 0xc9,
+                    0xe3, 0x62, 0xe1, 0xce};
 
   uint8_t pt[16] = {0x2d, 0xb5, 0x16, 0x8e,
-                          0x93, 0x25, 0x56, 0xf8,
-                          0x08, 0x9a, 0x06, 0x22,
-                          0x98, 0x1d, 0x01, 0x7d};
+                    0x93, 0x25, 0x56, 0xf8,
+                    0x08, 0x9a, 0x06, 0x22,
+                    0x98, 0x1d, 0x01, 0x7d};
 
   uint8_t ct[16] = {0xfa, 0x43, 0x62, 0x18,
-                          0x96, 0x61, 0xd1, 0x63,
-                          0xfc, 0xd6, 0xa5, 0x6d,
-                          0x8b, 0xf0, 0x40, 0x5a};
+                    0x96, 0x61, 0xd1, 0x63,
+                    0xfc, 0xd6, 0xa5, 0x6d,
+                    0x8b, 0xf0, 0x40, 0x5a};
 
   // uint8_t tag[16];
   uint8_t plaintext[ctLen];
@@ -535,8 +532,8 @@ int main()
   memset(crypto_msg_hdr.iv, 0, ivLen);
   memset(crypto_msg_hdr.tag, 0, tagLen);
 
-   memcpy(crypto_msg_hdr.aes_key, key, keyLen);
-   memcpy(crypto_msg_hdr.iv, iv, ivLen);
+  memcpy(crypto_msg_hdr.aes_key, key, keyLen);
+  memcpy(crypto_msg_hdr.iv, iv, ivLen);
 
   // initialize context
   gcm_initialize();
@@ -567,12 +564,12 @@ int main()
 #endif
 #ifdef CRYPTO_TEST
   uint8_t pt[16] = {0x2d, 0xb5, 0x16, 0x8e,
-                          0x93, 0x25, 0x56, 0xf8,
-                          0x08, 0x9a, 0x06, 0x22,
-                          0x98, 0x1d, 0x01, 0x7d};
+                    0x93, 0x25, 0x56, 0xf8,
+                    0x08, 0x9a, 0x06, 0x22,
+                    0x98, 0x1d, 0x01, 0x7d};
   send_enc_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)pt);
 
-  // read_auth_msg(RAD_INTF, buf, &hdr.src_id, &hdr.tgt_id, sizeof(buf), 1); 
+  // read_auth_msg(RAD_INTF, buf, &hdr.src_id, &hdr.tgt_id, sizeof(buf), 1);
 #endif
 
   // serve forever
