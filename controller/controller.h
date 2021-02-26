@@ -44,10 +44,9 @@ typedef uint16_t scewl_id_t;
 
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
-// #define DEBUG 1
 
 /******************************** start crypto ********************************/
-
+// #define DEBUG 1
 // #define MSG_CRYPTO 1
 // #define KEY_CRYPTO 1
 // #ifdef MSG_CRYPTO
@@ -75,7 +74,7 @@ typedef struct scewl_msg_hdr_t
   uint8_t tag[tagLen];
 } scewl_msg_hdr_t;
 
-typedef struct scewl_msg__t
+typedef struct scewl_msg_t
 {
   uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
@@ -232,6 +231,6 @@ int sss_register();
  */
 int sss_deregister();
 /* hande adding sequence number infront of the message body */
-void add_sequence_number(scewl_hdr_t *hdr,intf_t *intf);
+void add_sequence_number(scewl_hdr_t *hdr, intf_t *intf);
 bool strip_and_check_sequence_number(scewl_id_t source_SED);
 #endif

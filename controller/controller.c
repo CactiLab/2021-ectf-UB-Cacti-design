@@ -29,16 +29,56 @@ char int2char(uint8_t i)
 char buf[SCEWL_MAX_DATA_SZ];
 //sequence number structure
 sequence_num messeage_sq;
-int key_cryption()
-{
 
+int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
+{
+  switch (tgt_id)
+  {
+    // handler broadcast aes_key crypto, private key to sign, public key to auth
+  case SCEWL_BRDCST_ID:
+    /* code */
+    // rsa_sign(&crypto_msg);
+    break;
+  case SCEWL_SSS_ID:
+    break;
+  case SCEWL_FAA_ID:
+    break;
+
+// default means scewl messages, public key to encrypt, private key to decrypt
+  default:
+  // rsa_enc(&crypto_msg);
+    break;
+  }
   return 0;
 }
+
+int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
+{
+  switch (tgt_id)
+  {
+    // handler broadcast aes_key crypto, private key to sign, public key to auth
+  case SCEWL_BRDCST_ID:
+    /* code */
+    // rsa_auth(&crypto_msg);
+    break;
+  case SCEWL_SSS_ID:
+    break;
+  case SCEWL_FAA_ID:
+    break;
+
+// default means scewl messages, public key to encrypt, private key to decrypt
+  default:
+  // rsa_dec(&crypto_msg);
+    break;
+  }
+  return 0;
+}
+
 //need to update header length before sending the header ex: len = len + sizeof(uint32_t)
-void add_sequence_number(scewl_hdr_t *hdr,intf_t *intf)
+void add_sequence_number(scewl_hdr_t *hdr, intf_t *intf)
 {
   uint32_t updated_sq_num = ++messeage_sq.sq_send[hdr->tgt_id];
-  intf_write(intf,(char *)&updated_sq_num,sizeof(uint32_t));
+  intf_write(intf, (char *)&updated_sq_num, sizeof(uint32_t));
 }
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
@@ -98,6 +138,12 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   aes_gcm_encrypt_tag(ciphertext, (const uint8_t *)data, len, crypto_msg.aes_key, keyLen, crypto_msg.iv, ivLen, crypto_msg.tag, tagLen);
   // memcpy(data, ciphertext, len);
   memcpy(crypto_msg.body, ciphertext, len);
+
+#ifdef KEY_CRYPTO
+
+  key_enc(src_id, tgt_id, &crypto_msg);
+
+#endif
 
 #ifdef KEY_CRYPTO
 #endif
@@ -193,7 +239,11 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 
   crypto_msg = (scewl_msg_t *)data;
 
+// decrypt the aes_key
 #ifdef KEY_CRYPTO
+
+  key_dec(src_id, tgt_id, &crypto_msg);
+
 #endif
 
   // initialize context
