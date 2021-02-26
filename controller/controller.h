@@ -44,6 +44,7 @@ typedef uint16_t scewl_id_t;
 
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
+// #define DEBUG 1
 
 /******************************** start crypto ********************************/
 
@@ -69,12 +70,18 @@ typedef struct scewl_hdr_t
 // size: keyLen + ivLen + tagLen + bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
 typedef struct scewl_msg_hdr_t
 {
-  // scewl_hdr_t scewl_hdr;
   uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
-  // uint8_t body[];
 } scewl_msg_hdr_t;
+
+typedef struct scewl_msg__t
+{
+  uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
+  uint8_t iv[ivLen];       //
+  uint8_t tag[tagLen];
+  uint8_t body[];
+} scewl_msg_t;
 
 // registration message
 typedef struct scewl_sss_msg_t
@@ -127,6 +134,7 @@ int msg_encrypt_tag(intf_t *intf, char *data, scewl_hdr_t *hdr, scewl_msg_hdr_t 
 int msg_encrypt_tag_test();
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
 int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id, size_t n, int blocking);
 /*
  * read_msg
