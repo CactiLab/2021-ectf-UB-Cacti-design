@@ -232,6 +232,6 @@ int sss_register();
  */
 int sss_deregister();
 /* hande adding sequence number infront of the message body */
-int add_sequence_number(scewl_id_t receiver_SED, int len);
+void add_sequence_number(scewl_hdr_t *hdr,intf_t *intf);
 bool strip_and_check_sequence_number(scewl_id_t source_SED);
 #endif

@@ -34,6 +34,12 @@ int key_cryption()
 
   return 0;
 }
+//need to update header length before sending the header ex: len = len + sizeof(uint32_t)
+void add_sequence_number(scewl_hdr_t *hdr,intf_t *intf)
+{
+  uint32_t updated_sq_num = ++messeage_sq.sq_send[hdr->tgt_id];
+  intf_write(intf,(char *)&updated_sq_num,sizeof(uint32_t));
+}
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
@@ -438,29 +444,6 @@ int sss_deregister()
 
   // op should be DEREG on success
   return msg.op == SCEWL_SSS_DEREG;
-}
-
-int add_sequence_number(scewl_id_t receiver_SED, int len)
-{
-  char char_sq_num[10];
-  int i;
-  // sprintf(char_sq_num, "%ld", updated_sq_num);
-  char temp_buf[SCEWL_MAX_DATA_SZ];
-  uint32_t updated_sq_num = ++messeage_sq.sq_send[receiver_SED];
-
-  memset(char_sq_num, '0', sizeof(char_sq_num));
-
-  for (i = 9; i >= 0; --i, updated_sq_num /= 10)
-  {
-    char_sq_num[i] = (updated_sq_num % 10) + '0';
-  }
-
-  memcpy(temp_buf, buf, sizeof(buf));
-  memcpy(buf, char_sq_num, 10);
-  memcpy(buf + 10, temp_buf, sizeof(temp_buf));
-  len = len + 10;
-
-  return len;
 }
 
 bool strip_and_check_sequence_number(scewl_id_t source_SED)
