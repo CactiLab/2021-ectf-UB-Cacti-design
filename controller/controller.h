@@ -49,6 +49,7 @@ typedef uint16_t scewl_id_t;
 // #define DEBUG 1
 // #define MSG_CRYPTO 1
 // #define KEY_CRYPTO 1
+// #define RSA_CRYPTO 1
 // #ifdef MSG_CRYPTO
 // #endif
 /******************************** end crypto ********************************/
@@ -88,6 +89,13 @@ typedef struct scewl_sss_msg_t
   scewl_id_t dev_id;
   uint16_t op;
 } scewl_sss_msg_t;
+
+typedef struct scewl_sss_crypto_msg_t
+{
+  uint8_t sig[64]; // signature, same size with the RSA private key. 512 bit?? or 256 bit??
+  scewl_id_t dev_id;
+  uint16_t op;
+} scewl_sss_crypto_msg_t;
 
 // sequence number for each SED
 typedef struct sequence_num

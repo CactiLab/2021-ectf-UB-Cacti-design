@@ -44,9 +44,9 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
   case SCEWL_FAA_ID:
     break;
 
-// default means scewl messages, public key to encrypt, private key to decrypt
+    // default means scewl messages, public key to encrypt, private key to decrypt
   default:
-  // rsa_enc(&crypto_msg);
+    // rsa_enc(&crypto_msg);
     break;
   }
   return 0;
@@ -66,9 +66,9 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
   case SCEWL_FAA_ID:
     break;
 
-// default means scewl messages, public key to encrypt, private key to decrypt
+    // default means scewl messages, public key to encrypt, private key to decrypt
   default:
-  // rsa_dec(&crypto_msg);
+    // rsa_dec(&crypto_msg);
     break;
   }
   return 0;
@@ -80,6 +80,13 @@ void add_sequence_number(scewl_hdr_t *hdr, intf_t *intf)
   uint32_t updated_sq_num = ++messeage_sq.sq_send[hdr->tgt_id];
   intf_write(intf, (char *)&updated_sq_num, sizeof(uint32_t));
 }
+
+/*
+  Check message type:
+    CPU_INTF UART0
+    SSS_INTF UART1
+    RAD_INTF UART2
+*/
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
@@ -362,6 +369,26 @@ int read_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id,
   return max;
 }
 
+int send_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
+{
+  scewl_hdr_t hdr;
+
+  // pack header
+  hdr.magicS = 'S';
+  hdr.magicC = 'C';
+  hdr.src_id = src_id;
+  hdr.tgt_id = tgt_id;
+  hdr.len = len;
+
+  // send header
+  intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
+
+  // send body
+  intf_write(intf, data, len);
+
+  return SCEWL_OK;
+}
+
 int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
   scewl_hdr_t hdr;
@@ -400,11 +427,17 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
 
 int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
+#ifdef MSG_CRYPTO
+  return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
+#endif
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 }
 
 int handle_brdcst_send(char *data, uint16_t len)
 {
+#ifdef MSG_CRYPTO
+  return send_enc_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, len, data);
+#endif
   return send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, len, data);
 }
 
