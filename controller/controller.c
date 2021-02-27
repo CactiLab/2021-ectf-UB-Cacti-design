@@ -74,25 +74,11 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
   return 0;
 }
 
-//need to update header length before sending the header ex: len = len + sizeof(uint32_t)
-void add_sequence_number(scewl_hdr_t *hdr, intf_t *intf)
+bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
 {
-  uint32_t updated_sq_num = ++messeage_sq.sq_send[hdr->tgt_id];
-  intf_write(intf, (char *)&updated_sq_num, sizeof(uint32_t));
-}
-
-bool strip_and_check_sequence_number(scewl_id_t source_SED)
-{
-  char received_suqence[10];
-  int received_sq_number;
-
-  memcpy(received_suqence, buf, 10);
-  received_sq_number = atoi(received_suqence);
-
   if (messeage_sq.sq_receive[source_SED] < received_sq_number)
   {
     messeage_sq.sq_receive[source_SED] = received_sq_number;
-    memcpy(buf, buf + 10, sizeof(buf) - 10);
     return true;
   }
 
@@ -310,18 +296,20 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   }
 
   send_str("Authentication Success!\n");
+  if (check_sequence_number(hdr.src_id, crypto_msg->sq)) {
 
-/**********************************************************************************
-[TODO] please add sequence number checking here
-sequence number incoming: &crypto_msg->sq
-**********************************************************************************/
+    #ifdef DEBUG_MSG_CRYPTO
+    send_str("Receiver Sequence number");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg->sq);
+    #endif
+    send_str("Sequence numebr validation success");
 
-  /*if (strip_and_check_sequence_number(src_id)) {
-			            //memcpy(buf, "VAlid", 5);
-			            len = len - 10;
-	            } else {
-			            memcpy(buf, "Invalid sequence", sizeof("Invalid sequence"));
-	            }*/
+  } else {
+
+    send_str("Replay attack detected");
+    return(-1);
+    
+  }
 
 #ifdef DEBUG_MSG_CRYPTO
   send_str("sq:\n");
@@ -717,12 +705,10 @@ int main()
         }
         else if (tgt_id == SCEWL_FAA_ID)
         {
-          //len =  add_sequence_number(tgt_id, len);
           handle_faa_send(buf, len);
         }
         else
         {
-          //add_sequence_number(tgt_id, len);
           handle_scewl_send(buf, tgt_id, len);
         }
 
@@ -747,12 +733,6 @@ int main()
             // receive unicast message
             if (src_id == SCEWL_FAA_ID)
             {
-              /*if (strip_and_check_sequence_number(src_id)) {
-			            //memcpy(buf, "VAlid", 5);
-			            len = len - 10;
-	            } else {
-			            memcpy(buf, "Invalid sequence", sizeof("Invalid sequence"));
-	            }*/
               handle_faa_recv(buf, len);
             }
             else

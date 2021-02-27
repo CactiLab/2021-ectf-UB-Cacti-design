@@ -241,7 +241,7 @@ int sss_register();
  * Performs a deregistration with the SSS
  */
 int sss_deregister();
-/* hande adding sequence number infront of the message body */
-void add_sequence_number(scewl_hdr_t *hdr, intf_t *intf);
-bool strip_and_check_sequence_number(scewl_id_t source_SED);
+
+/* Handle sequence number checking from*/
+bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number);
 #endif
