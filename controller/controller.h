@@ -46,8 +46,10 @@ typedef uint16_t scewl_id_t;
 // #define CRYPTO_TEST 1
 
 /******************************** start crypto ********************************/
-// #define DEBUG 1
-// #define MSG_CRYPTO 1
+
+#define DEBUG_SQ 1
+#define MSG_CRYPTO 1
+// #define DEBUG_MSG_CRYPTO 1
 // #define KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
 // #ifdef MSG_CRYPTO
@@ -80,8 +82,16 @@ typedef struct scewl_msg_t
   uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
+  uint32_t sq;
   uint8_t body[];
 } scewl_msg_t;
+
+// sequence number for each SED
+typedef struct sequence_num_t
+{
+  uint32_t sq_send[max_sequenced_SEDS];
+  uint32_t sq_receive[max_sequenced_SEDS];
+} sequence_num_t;
 
 // registration message
 typedef struct scewl_sss_msg_t
@@ -96,13 +106,6 @@ typedef struct scewl_sss_crypto_msg_t
   scewl_id_t dev_id;
   uint16_t op;
 } scewl_sss_crypto_msg_t;
-
-// sequence number for each SED
-typedef struct sequence_num
-{
-  uint32_t sq_send[max_sequenced_SEDS];
-  uint32_t sq_receive[max_sequenced_SEDS];
-} sequence_num;
 
 // SCEWL status codes
 enum scewl_status
