@@ -50,6 +50,7 @@ typedef uint16_t scewl_id_t;
 #define DEBUG_SQ 1
 #define MSG_CRYPTO 1
 // #define DEBUG_MSG_CRYPTO 1
+//#define SQ_DEBUG 1
 // #define KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
 // #ifdef MSG_CRYPTO

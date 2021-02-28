@@ -148,6 +148,11 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
   // setup the sequence number
   crypto_msg.sq = ++messeage_sq.sq_send[hdr.tgt_id];
+  
+#ifdef SQ_DEBUG
+  send_str("Sending sq:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg.sq);
+#endif
 
 #ifdef DEBUG_MSG_CRYPTO
   send_str("------------------------------------------------------------------:\n");
@@ -159,7 +164,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   send_str("iv:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)crypto_msg.iv);
   send_str("sq:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.sq);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg.sq);
   send_str("sq + plaintext:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)&crypto_msg + sizeof(scewl_msg_hdr_t));
 #endif
