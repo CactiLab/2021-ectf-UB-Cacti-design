@@ -49,6 +49,32 @@ def enc_input(scewl_id):
 
     myfile_pub.close()
 
+
+    ########################02/28 add public key transform
+    #   Qiqing Huang note:
+    #   add this part is because the public key format in controller is in the format of  modulus (N) plus publicExponent (E). But the rsa python api for loading the key needs the PEM DER ASN.1 PKCS#1 format. So there we do a transformation from PEM DER ASN.1 PKCS#1 to just modulus (N) plus publicExponent (E)
+    #   the details of public key format can be found in https://stackoverflow.com/questions/18039401/how-can-i-transform-between-the-two-styles-of-public-key-format-one-begin-rsa
+    with open(fn_pub, mode='rb') as publicfile:
+        keydata = publicfile.read()
+        # pubkey = rsa.PublicKey.load_pkcs1(keydata)
+        test = rsa.PublicKey.load_pkcs1(keydata)
+        # print(test)
+        module_s = str(test).split("(")[1].split(",")[0].strip()
+        publicExponent_s = str(test).split(")")[0].split(",")[1].strip()
+
+        module = format(int(module_s), 'x')
+        publicExponent = format(int(publicExponent_s), 'x').zfill(8)
+
+        pubkeyForSend = open(fn_pub + "_send", "w")
+        pubkeyForSend.write(module)
+        pubkeyForSend.write("\r\n")
+        pubkeyForSend.write(publicExponent)
+        pubkeyForSend.close()
+
+    ###############################02/28 add public key transform
+
+
+
     #write to pri file
     f_pri = open(fn_pri, 'w')
     # f_pri.write(str(scewl_pri))

@@ -220,31 +220,7 @@ def registration_tmp(signedMsg):
         with open(publicKey, mode='rb') as publicfile:
             keydata = publicfile.read()
             pubkey = rsa.PublicKey.load_pkcs1(keydata)
-
-
-
-            ########################02/28 add public key transform
-            #   Qiqing Huang note:
-            #   add this part is because the public key format in controller is in the format of  modulus (N) plus publicExponent (E). But the rsa python api for loading the key needs the PEM DER ASN.1 PKCS#1 format. So there we do a transformation from PEM DER ASN.1 PKCS#1 to just modulus (N) plus publicExponent (E)
-            #   the details of public key format can be found in https://stackoverflow.com/questions/18039401/how-can-i-transform-between-the-two-styles-of-public-key-format-one-begin-rsa
-
-            test = pubkey = rsa.PublicKey.load_pkcs1(keydata)
-            # print(test)
-            module_s = str(test).split("(")[1].split(",")[0].strip()
-            publicExponent_s = str(test).split(")")[0].split(",")[1].strip()
-
-            module = format(int(module_s), 'x')
-            publicExponent = format(int(publicExponent_s), 'x').zfill(8)
-
-            pubkeyForSend = open(str(deviceID_i) + "_send" + ".pub", "w")
-            pubkeyForSend.write(module)
-            pubkeyForSend.write("\r\n")
-            pubkeyForSend.write(publicExponent)
-            pubkeyForSend.close()
-
             
-            ###############################02/28 add public key transform
-
 
         try:
             result = rsa.verify(verifyBody, encSignedBody, pubkey)
@@ -317,17 +293,17 @@ def deregistration_tmp(signedMsg):
 def main():
 
     ### registration_tmp and deregistration_tmp test
-    signedMsg = createTmpMsg(0)
-    registration_tmp(signedMsg)
+    # signedMsg = createTmpMsg(0)
+    # registration_tmp(signedMsg)
     # deregistration_tmp(signedMsg)
     ### registration_tmp and deregistration_tmp test
 
     
-    # args = parse_args()
+    args = parse_args()
 
     # map of SCEWL IDs to statuses
-    # sss = SSS(args.sockf)
-    # sss.start()
+    sss = SSS(args.sockf)
+    sss.start()
 
 
 
