@@ -43,12 +43,15 @@ def enc_input(scewl_id):
     
     #write to pub file
     myfile_pub = open(fn_pub, 'w')
+    print(type(scewl_pub))
+    # myfile_pub.write(str(scewl_pub))
     myfile_pub.write(scewl_pub.save_pkcs1().decode())
 
     myfile_pub.close()
 
     #write to pri file
     f_pri = open(fn_pri, 'w')
+    # f_pri.write(str(scewl_pri))
     f_pri.write(scewl_pri.save_pkcs1().decode())
     f_pri.close()
     
