@@ -83,9 +83,25 @@ typedef struct scewl_msg_t
   uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
-  uint32_t sq;
-  uint8_t body[];
+  uint8_t body[SCEWL_MAX_DATA_SZ];
 } scewl_msg_t;
+
+typedef struct scewl_crypto_msg_hdr_t
+{
+  scewl_id_t tgt_id;
+  scewl_id_t src_id;
+  uint16_t len;
+  uint32_t sq;
+} scewl_crypto_msg_hdr_t;
+
+typedef struct scewl_crypto_msg_t
+{
+  scewl_id_t tgt_id;
+  scewl_id_t src_id;
+  uint16_t len;
+  uint32_t sq;
+  uint8_t body[SCEWL_MAX_DATA_SZ];
+} scewl_crypto_msg_t;
 
 // sequence number for each SED
 typedef struct sequence_num_t
