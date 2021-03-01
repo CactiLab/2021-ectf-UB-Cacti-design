@@ -18,7 +18,7 @@
 //#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#define SCEWL_MAX_DATA_SZ 0x4000
+#define SCEWL_MAX_DATA_SZ 0x4000 + 60 //max data size + data verify header
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 256
 // type of a SCEWL ID
