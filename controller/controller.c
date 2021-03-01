@@ -108,18 +108,18 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   scewl_crypto_msg_t crypto_msg;
 
   // int ret = 0;
-  uint8_t key[32] = {0x31, 0xbd, 0xad, 0xd9,
-                     0x66, 0x98, 0xc2, 0x04,
-                     0xaa, 0x9c, 0xe1, 0x44,
-                     0x8e, 0xa9, 0x4a, 0xe1,
-                     0xfb, 0x4a, 0x9a, 0x0b,
-                     0x3c, 0x9d, 0x77, 0x3b,
-                     0x51, 0xbb, 0x18, 0x22,
-                     0x66, 0x6b, 0x8f, 0x22};
+  // uint8_t key[32] = {0x31, 0xbd, 0xad, 0xd9,
+  //                    0x66, 0x98, 0xc2, 0x04,
+  //                    0xaa, 0x9c, 0xe1, 0x44,
+  //                    0x8e, 0xa9, 0x4a, 0xe1,
+  //                    0xfb, 0x4a, 0x9a, 0x0b,
+  //                    0x3c, 0x9d, 0x77, 0x3b,
+  //                    0x51, 0xbb, 0x18, 0x22,
+  //                    0x66, 0x6b, 0x8f, 0x22};
 
-  uint8_t iv[12] = {0x0d, 0x18, 0xe0, 0x6c,
-                    0x7c, 0x72, 0x5a, 0xc9,
-                    0xe3, 0x62, 0xe1, 0xce};
+  // uint8_t iv[12] = {0x0d, 0x18, 0xe0, 0x6c,
+  //                   0x7c, 0x72, 0x5a, 0xc9,
+  //                   0xe3, 0x62, 0xe1, 0xce};
 
   // uint8_t pt[16] = {0x2d, 0xb5, 0x16, 0x8e,
   //                         0x93, 0x25, 0x56, 0xf8,
@@ -131,21 +131,38 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   //                         0xfc, 0xd6, 0xa5, 0x6d,
   //                         0x8b, 0xf0, 0x40, 0x5a};
 
+  uint8_t key[keyLen];
+  uint8_t iv[ivLen];
+  int i = 0;
+
   uint8_t plaintext[enc_len];
   uint8_t ciphertext[enc_len];
 
   // initialize the structures
+  memset(key, 0, keyLen);
+  memset(iv, 0, ivLen);
   memset(ciphertext, 0, enc_len);
   memset(plaintext, 0, enc_len);
   memset(&msg, 0, sizeof(scewl_msg_t));
   memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
 
+  // setup random aes_key and iv
+  srand((unsigned int)&msg);
+  for (i = 0; i < keyLen; i++)
+  {
+    key[i] = rand() % 200 + 1;
+  }
+
+  for (i = 0; i < ivLen; i++)
+  {
+    iv[i] = rand() % 200 + 1;
+  }
+
   // setup the crypto message structure
   crypto_msg.tgt_id = tgt_id;
   crypto_msg.src_id = src_id;
   crypto_msg.len = hdr.len;
-  ++messeage_sq.sq_send[hdr.tgt_id];
-  crypto_msg.sq = (uint32_t *)&(messeage_sq.sq_send[hdr.tgt_id]); // setup the sequence number
+  crypto_msg.sq = ++messeage_sq.sq_send[hdr.tgt_id]; // setup the sequence number
   memcpy(crypto_msg.body, data, len);                             // setup the plaintext
 
   // setup the scewl message
@@ -254,11 +271,9 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   //                         0xfc, 0xd6, 0xa5, 0x6d,
   //                         0x8b, 0xf0, 0x40, 0x5a};
 
-  // uint8_t tag[16];
   uint8_t plaintext[dec_len];
   uint8_t ciphertext[dec_len];
 
-  // memset(tag, 0, 16);
   memset(ciphertext, 0, dec_len);
   memset(plaintext, 0, dec_len);
 
@@ -290,8 +305,8 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   int ret = 0;
   ret = aes_gcm_decrypt_auth(plaintext, (const uint8_t *)msg->body, dec_len, msg->aes_key, keyLen, msg->iv, ivLen, msg->tag, tagLen);
 #ifdef DEBUG_MSG_CRYPTO
-    send_str("plaintext before checking header:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)plaintext);
+  send_str("plaintext before checking header:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)plaintext);
 #endif
   if (ret == 0)
   {
@@ -301,7 +316,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 #endif
     send_str("Checkging the header...\n");
     crypto_msg = (scewl_crypto_msg_t *)plaintext;
-    // memcpy(crypto_msg, plaintext, dec_len);
 #ifdef DEBUG_MSG_CRYPTO
     send_str("src_id:\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->src_id);
@@ -341,7 +355,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   }
   else
   {
-
     send_str("Replay attack detected");
     return (-1);
   }

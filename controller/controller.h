@@ -42,19 +42,18 @@ typedef uint16_t scewl_id_t;
 #define tagLen 16
 #define msgHeader 60
 
+/******************************** start example ********************************/
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
+/******************************** end example ********************************/
+
 
 /******************************** start crypto ********************************/
-
-#define DEBUG_SQ 1
 #define MSG_CRYPTO 1
 // #define DEBUG_MSG_CRYPTO 1
-//#define SQ_DEBUG 1
+// #define SQ_DEBUG 1
 // #define KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
-// #ifdef MSG_CRYPTO
-// #endif
 /******************************** end crypto ********************************/
 
 // SCEWL bus channel header
@@ -70,7 +69,7 @@ typedef struct scewl_hdr_t
 } scewl_hdr_t;
 
 // message format: | scewl_header | AENCpk(ka) | IV | tag | ENC(ka, iva)(header + message) |
-// size: keyLen + ivLen + tagLen + bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
+// size: keyLen + ivLen + tagLen + crypto_bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
 typedef struct scewl_msg_hdr_t
 {
   uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
@@ -119,7 +118,7 @@ typedef struct scewl_sss_msg_t
 
 typedef struct scewl_sss_crypto_msg_t
 {
-  uint8_t sig[64]; // signature, same size with the RSA private key. 512 bit?? or 256 bit??
+  uint8_t sig[64]; // signature, same size with the RSA private key. 512 bit
   scewl_id_t dev_id;
   uint16_t op;
 } scewl_sss_crypto_msg_t;
@@ -149,20 +148,34 @@ enum scewl_ids
   SCEWL_FAA_ID
 };
 
-// message auth
-enum msg_auth_status
-{
-  FAILURE = -1,
-  SUCCESS
-};
-
-// int msg_encrypt_tag()
-int msg_encrypt_tag(intf_t *intf, char *data, scewl_hdr_t *hdr, scewl_msg_hdr_t *crypto_msg);
-int msg_encrypt_tag_test();
-
+/*
+ * send_enc_msg
+ * 
+ * Sends a message in the SCEWL pkt format to an interface
+ * 
+ * Args:
+ *   intf - pointer to the physical interface device
+ *   src_id - the id of the sending device
+ *   tgt_id - the id of the receiving device
+ *   len - the length of message
+ *   data - pointer to the message
+ */
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+
+/*
+ * send_auth_msg
+ * 
+ * Sends a message in the SCEWL pkt format to an interface
+ * 
+ * Args:
+ *   intf - pointer to the physical interface device
+ *   src_id - the id of the sending device
+ *   tgt_id - the id of the receiving device
+ *   len - the length of message
+ *   data - pointer to the message
+ */
 int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
-int read_auth_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id, size_t n, int blocking);
+
 /*
  * read_msg
  *
