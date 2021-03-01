@@ -36,6 +36,8 @@ ADD . /sed
 WORKDIR /sed
 ARG SCEWL_ID
 RUN make SCEWL_ID=${SCEWL_ID}
+
+# attached the key after the bin file, get the address of the key
 RUN mv /sed/gcc/controller.bin /controller
 
 # NOTE: If you want to use the debugger with the scripts we provide, 

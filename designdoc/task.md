@@ -1,3 +1,9 @@
+## Update 03/01/2021
+1.  RSA-c
+2.  create_secret.py, key.h
+3.  sss.py
+4.  Dockerfile
+
 ## Updates 02/22/2021
 1. RSA crypto `c` code implementation [Gursimran Singh]
    - Standalone project without OpenSSL
