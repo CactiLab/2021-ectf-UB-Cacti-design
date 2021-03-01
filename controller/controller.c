@@ -147,7 +147,8 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
 
   // setup random aes_key and iv
-  srand((unsigned int)&msg);
+  srand((unsigned int)(&msg + SCEWL_ID));
+
   for (i = 0; i < keyLen; i++)
   {
     key[i] = rand() % 200 + 1;
