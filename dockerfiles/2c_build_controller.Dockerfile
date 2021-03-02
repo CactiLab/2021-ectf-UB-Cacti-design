@@ -14,6 +14,7 @@ ARG DEPLOYMENT
 #                                                                 #
 # Then see box below                                              #
 ###################################################################
+# FROM ${DEPLOYMENT}/sss as sss 
 
 # load the base controller image
 FROM ${DEPLOYMENT}/controller:base
@@ -32,9 +33,13 @@ ADD . /sed
 # SED FILE STRUCTURE PAST BUILDING, SO CLEAN UP HERE AS NECESSARY #
 ###################################################################
 
+ARG SCEWL_ID
+
 # generate any other secrets and build controller
 WORKDIR /sed
-ARG SCEWL_ID
+
+# COPY --from=sss /${SCEWL_ID}/key.h /sed/key.h
+
 RUN make SCEWL_ID=${SCEWL_ID}
 
 # attached the key after the bin file, get the address of the key

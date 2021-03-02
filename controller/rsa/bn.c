@@ -19,14 +19,14 @@ void BN_print_hex(DTYPE *data, DTYPE data_length)
 	printf("\n");
 }
 
-void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp)
-{
-	int i=BN_valid_pos(data, data_length);
-	for(; i < data_length; i++)
-	{
-		fprintf(fp, STD_FORMAT_STR, data[i]);
-	}
-}
+// void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp)
+// {
+// 	int i=BN_valid_pos(data, data_length);
+// 	for(; i < data_length; i++)
+// 	{
+// 		fprintf(fp, STD_FORMAT_STR, data[i]);
+// 	}
+// }
 
 //transform string(ascii) to hex format
 //hex_len=strlen/2

@@ -1,3 +1,6 @@
+#ifndef BN_H
+#define BN_H
+
 #include<stdint.h>
 #include<string.h>
 
@@ -111,3 +114,5 @@ void signBN_init_assign(sm *r, DTYPE *a, DTYPE a_length);
 
 //r->length=a->length=c->length
 void BN_sign_sub(sm *r, sm *a, sm *c);
+
+#endif

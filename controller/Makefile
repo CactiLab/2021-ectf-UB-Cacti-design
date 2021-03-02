@@ -81,23 +81,23 @@ CFLAGS+=-DAES_GCM
 all: ${COMPILER}/gcm.o aes.o aes-gcm.o
 endif
 
-################ add RSA512 ################
-RSA512=foo
-ifdef RSA512
+################ add RSA ################
+RSA=foo
+ifdef RSA
 # path to auth library
-RSA512PATH=./rsa
+RSAPATH=./rsa
 
 # add path to auth source files to source path
-VPATH+=${RSA512PATH}
+VPATH+=${RSAPATH}
 
 # add auth library to includes path
-IPATH+=${RSA512PATH}
+IPATH+=${RSAPATH}
 
 # add auth object file to includes path
-LDFLAGS+=${COMPILER}/keys.o bn.o rsa.o
+LDFLAGS+=${COMPILER}/bn.o keys.o rsa.o
 
 # add rule to build auth library
-all: ${COMPILER}/keys.o bn.o rsa.o
+all: ${COMPILER}/bn.o keys.o rsa.o
 endif
 
 # ################ add sha256 ################

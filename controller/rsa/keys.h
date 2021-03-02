@@ -1,3 +1,6 @@
+#ifndef KEYS_H
+#define KEYS_H
+
 #include "bn.h"
 
 typedef struct pk{
@@ -26,3 +29,5 @@ typedef struct sk{
 
 //generate keys in RSA
 void rsa_key_generation(rsa_pk *pk, rsa_sk *sk);
+
+#endif

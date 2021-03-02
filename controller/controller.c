@@ -10,7 +10,6 @@
 #include <stdlib.h>
 // #include <time.h>
 #include "controller.h"
-// #include "rsa.h"
 
 // this will run if EXAMPLE_AES is defined in the Makefile
 #ifdef EXAMPLE_AES
@@ -23,6 +22,11 @@ char int2char(uint8_t i)
   char *hex = "0123456789abcdef";
   return hex[i & 0xf];
 }
+#endif
+
+#ifdef RSA_TEST
+#include "rsa.h"
+#include "key.h"
 #endif
 
 // message buffer
@@ -672,6 +676,56 @@ int main()
                     0x08, 0x9a, 0x06, 0x22,
                     0x98, 0x1d, 0x01, 0x7d};
   send_enc_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, BLOCK_SIZE, (char *)pt);
+#endif
+
+#ifdef RSA_TEST
+  uint8_t message[MAX_MODULUS_LENGTH * 2] = {0x2d, 0xb5, 0x16, 0x8e,
+                                             0x93, 0x25, 0x56, 0xf8,
+                                             0x08, 0x9a, 0x06, 0x22,
+                                             0x98, 0x1d, 0x01, 0x7d};
+
+  rsa_pk *pk = &public_key;
+  rsa_sk *sk = &private_key;
+
+  // configure the e
+  BN_init(pk->e, MAX_PRIME_LENGTH);
+  //e=2^16+1
+  pk->e[MAX_PRIME_LENGTH - 2] = 1;
+  pk->e[MAX_PRIME_LENGTH - 1] = 1;
+
+  DTYPE msg[MAX_MODULUS_LENGTH] = {0};
+  DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE plaintext[MAX_MODULUS_LENGTH] = {0};
+
+  // char message[MAX_MODULUS_LENGTH * 2];
+  // char ciphertext[MAX_MODULUS_LENGTH * 4 + 1];
+
+  //read message from file
+  // fp = fopen(m , "r");
+  // if(fp==NULL){
+  //     printf("Cannot open file %s\n", m);
+  //     return 0;
+  // }
+  // fgets(message, MAX_MODULUS_LENGTH * 2, fp);
+  // fclose(fp);
+  // string_to_hex(msg, message);
+
+  send_str("Encryption starts...\n");
+  rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, pk);
+  send_str("Encryption done...\n\n");
+
+  send_str("Decryption starts...\n");
+  rsa_decrypt(plaintext, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, sk);
+  send_str("Decryption done...\n\n");
+
+  if (BN_cmp(msg, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
+  {
+    send_str("\nAfter decryption, plaintext equal to message.\n");
+  }
+  else
+  {
+    send_str("\nAfter decryption, wrong answer.\n");
+  }
 #endif
 
   // serve forever

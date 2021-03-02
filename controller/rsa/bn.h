@@ -1,4 +1,8 @@
+#ifndef BN_H
+#define BH_H
+
 #include<stdint.h>
+#include <stdio.h>
 #include<string.h>
 
 #define WORD_SIZE 16
@@ -22,7 +26,7 @@ typedef struct{
 //print multiprecision integer in hex format
 void BN_print_hex(DTYPE *data, DTYPE data_length);
 
-void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp);
+// void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp);
 
 //transform string to hex format
 void string_to_hex(DTYPE *hex, char *str);
@@ -111,3 +115,5 @@ void signBN_init_assign(sm *r, DTYPE *a, DTYPE a_length);
 
 //r->length=a->length=c->length
 void BN_sign_sub(sm *r, sm *a, sm *c);
+
+#endif
