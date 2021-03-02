@@ -106,3 +106,7 @@ sss/RSA-module/ciphertext.txt
 sss/RSA-module/plaintext.txt
 sss/RSA-module/privateKey.txt
 sss/RSA-module/publicKey.txt
+
+*.pri
+*.pub
+*.pub_send

@@ -22,3 +22,13 @@ ADD create_secret.py create_secret
 RUN python3 create_secret ${SCEWL_ID} generate_key
 
 ##############################
+# generate rsa key files for SCEWL_ID
+ADD rsa /rsa
+RUN mkdir /${SCEWL_ID}
+WORKDIR /rsa
+RUN make
+RUN ./rsatest
+RUN mv privateKey.txt publicKey.txt /${SCEWL_ID}
+RUN make clean
+
+##############################
