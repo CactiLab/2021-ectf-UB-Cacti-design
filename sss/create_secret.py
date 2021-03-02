@@ -22,14 +22,16 @@ def read_input():
 
 def del_input(scewl_id):
     #TODO: delete pub and private key files for scewl id (print bad if doesn't exist)
-    pub_path = str(scewl_id) + ".pub"
-    pri_path = str(scewl_id) + ".pri"
+    pub_path = "/" + str(scewl_id) + "/privateKey.txt"
+    pri_path = "/" + str(scewl_id) + "/publicKey.txt"
+    keyHeader_path = "/" + str(scewl_id) + "/key.h"
     if os.path.exists(pub_path) and os.path.exists(pri_path):
         os.remove(pub_path)
         os.remove(pri_path)
-        print("success: deleted public and private key for id: ", scewl_id)
+        os.remove(keyHeader_path)
+        print("success: deleted public, private key  and key headerfor id: ", scewl_id)
     else:
-        print("failure: public and/or private key does not exist for ", scewl_id)
+        print("failure: public and/or private key and/or Key header file does not exist for ", scewl_id)
 
 def write_into_header_file(struct_name, key_file_header, list_of_key_values, name, int_index):
     last_index = len(list_of_key_values) - 1
