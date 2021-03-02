@@ -8,7 +8,7 @@
  */
 
 #include <stdlib.h>
-#include <time.h>
+// #include <time.h>
 #include "controller.h"
 #include "sha256.h"
 
@@ -29,6 +29,13 @@ char int2char(uint8_t i)
 char buf[SCEWL_MAX_DATA_SZ];
 //sequence number structure
 sequence_num_t messeage_sq;
+
+volatile uint32_t sysTimer = 0;
+
+void SysTick_Handler(void)
+{
+  sysTimer++;
+}
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
 {
@@ -123,16 +130,21 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
 
   // setup random aes_key and iv
-  srand((unsigned int)(&msg + SCEWL_ID));
+  // srand((unsigned int)(&msg + SCEWL_ID));
 
+  srand(sysTimer);
+#ifdef DEBUG_TIMER
+  send_str("timer:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&sysTimer);
+#endif
   for (i = 0; i < keyLen; i++)
   {
-    key[i] = rand() % 200 + 1;
+    key[i] = rand() % 256;
   }
 
   for (i = 0; i < ivLen; i++)
   {
-    iv[i] = rand() % 200 + 1;
+    iv[i] = rand() % 256;
   }
 
   // setup the crypto message structure
@@ -140,7 +152,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   crypto_msg.src_id = src_id;
   crypto_msg.len = hdr.len;
   crypto_msg.sq = ++messeage_sq.sq_send[hdr.tgt_id]; // setup the sequence number
-  memcpy(crypto_msg.body, data, len);                             // setup the plaintext
+  memcpy(crypto_msg.body, data, len);                // setup the plaintext
 
   // setup the scewl message
   memcpy(msg.aes_key, key, keyLen);
@@ -552,6 +564,11 @@ int main()
   scewl_hdr_t hdr;
   uint16_t src_id, tgt_id;
 
+  // Initial systick
+  if (SysTick_Config(SystemFrequency / 1000) != 0)
+  { /* Check return code for errors */
+    return -1;
+  }
   // intialize the sequence numbers to zero
   memset(&messeage_sq, 0, sizeof(sequence_num_t));
 
