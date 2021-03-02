@@ -14,7 +14,7 @@ ARG DEPLOYMENT
 #                                                                 #
 # Then see box below                                              #
 ###################################################################
-# FROM ${DEPLOYMENT}/sss as sss 
+FROM ${DEPLOYMENT}/sss as sss 
 
 # load the base controller image
 FROM ${DEPLOYMENT}/controller:base
@@ -38,7 +38,7 @@ ARG SCEWL_ID
 # generate any other secrets and build controller
 WORKDIR /sed
 
-# COPY --from=sss /${SCEWL_ID}/key.h /sed/key.h
+COPY --from=sss /${SCEWL_ID}/key.h /sed/key.h
 
 RUN make SCEWL_ID=${SCEWL_ID}
 
