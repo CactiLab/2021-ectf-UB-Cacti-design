@@ -19,14 +19,14 @@ void BN_print_hex(DTYPE *data, DTYPE data_length)
 	printf("\n");
 }
 
-// void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp)
-// {
-// 	int i=BN_valid_pos(data, data_length);
-// 	for(; i < data_length; i++)
-// 	{
-// 		fprintf(fp, STD_FORMAT_STR, data[i]);
-// 	}
-// }
+void BN_printToFile(DTYPE *data, DTYPE data_length, FILE *fp)
+{
+	int i=BN_valid_pos(data, data_length);
+	for(; i < data_length; i++)
+	{
+		fprintf(fp, STD_FORMAT_STR, data[i]);
+	}
+}
 
 //transform string(ascii) to hex format
 //hex_len=strlen/2
@@ -403,13 +403,11 @@ void BN_mod(DTYPE *r, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length)
 		return;
 	}
 
-	DTYPE *a_copy=(DTYPE *)malloc(sizeof(DTYPE)*a_length);
-	DTYPE *aligned_n=(DTYPE *)malloc(sizeof(DTYPE)*a_length);
-	if(a_copy == NULL || aligned_n == NULL)
-	{
-		printf("Wrong with malloc\n");
-		exit(-1);
-	}
+	DTYPE a_copy[MAX_MODULUS_LENGTH*2+1];
+	DTYPE aligned_n[MAX_MODULUS_LENGTH*2+1];
+	memset(a_copy, 0, MAX_MODULUS_LENGTH*2+1);
+	memset(aligned_n, 0, MAX_MODULUS_LENGTH*2+1);
+
 	BN_assign(a_copy, a, a_length);
 	BN_init(aligned_n, a_length);
 	if(a_length == n_length)
@@ -440,22 +438,19 @@ void BN_mod(DTYPE *r, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length)
 		r[j+n_length-a_length]=a_copy[j];
 	}
 
-	if(a_copy!=NULL) free(a_copy);
-	if(aligned_n!=NULL) free(aligned_n);
+	memset(a_copy, 0, MAX_MODULUS_LENGTH*2+1);
+	memset(aligned_n, 0, MAX_MODULUS_LENGTH*2+1);
 }
 
 //r=a*b(mod n) default r_length=n_length use multiply then reduce method
 void BN_mod_mul(DTYPE *r, DTYPE *a, DTYPE a_length, DTYPE *b, DTYPE b_length, DTYPE *n, DTYPE n_length)
 {
-	DTYPE *rr=(DTYPE *)malloc(sizeof(DTYPE)*(a_length+b_length));
-	if(rr == NULL)
-	{
-		printf("Wrong with malloc");
-		exit(-1);
-	}
+	DTYPE rr[MAX_MODULUS_LENGTH*2+1];
+	memset(rr, 0, MAX_MODULUS_LENGTH*2+1);
+
 	BN_mul(rr, a, a_length, b, b_length);
 	BN_mod(r, rr, a_length+b_length, n, n_length);
-	if(rr!=NULL) free(rr);
+	memset(rr, 0, MAX_MODULUS_LENGTH*2+1);
 }
 
 //r=a*(b mod n)(mod n) using Blakley's Method
@@ -464,12 +459,10 @@ void BN_mod_mul2(DTYPE *r, DTYPE *a, DTYPE a_length, DTYPE *b, DTYPE b_length, D
 	int i, j, k, q, len=2*MAX_MODULUS_LENGTH+1;
 	DTYPE a0;
 	DTYPE R[2*MAX_MODULUS_LENGTH+1]={0};
-	DTYPE *b_mod_n=(DTYPE *)malloc(sizeof(DTYPE)*n_length);
-	if(b_mod_n == NULL)
-	{
-		printf("Wrong with malloc\n");
-		exit(-1);
-	}
+
+	DTYPE b_mod_n[MAX_MODULUS_LENGTH*2+1];
+	memset(b_mod_n, 0, MAX_MODULUS_LENGTH*2+1);
+
 	BN_mod(b_mod_n, b, b_length, n, n_length);
 
 	for(i=BN_valid_pos(a, a_length); i < a_length; i++)
@@ -505,7 +498,7 @@ void BN_mod_mul2(DTYPE *r, DTYPE *a, DTYPE a_length, DTYPE *b, DTYPE b_length, D
 			a0 <<= 1;
 		}
 	}
-	if(b_mod_n!=NULL) free(b_mod_n);
+	memset(b_mod_n, 0, MAX_MODULUS_LENGTH*2+1);
 }
 
 //compute a_inv, a_inv*a=1(mod n) use Binary Extended gcd Algorithm
@@ -526,13 +519,9 @@ void BN_mod_inv(DTYPE *a_inv, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length
 		a_copy.bn[i+1]=a[i];
 	} //a_copy=a;
 
-	DTYPE *ntmp=(DTYPE *)malloc(sizeof(DTYPE)*(n_length+2));
-	if(ntmp==NULL)
-	{
-		printf("Wrong with malloc\n");
-		exit(-1);
-	}
-	BN_init(ntmp, n_length+2);
+	DTYPE ntmp[MAX_MODULUS_LENGTH*2+1];
+	memset(ntmp, 0, MAX_MODULUS_LENGTH*2+1);
+	// BN_init(ntmp, n_length+2);
 
 	while(BN_isEqualZero(u.bn, a_length)==0)
 	{
@@ -570,13 +559,10 @@ void BN_mod_inv(DTYPE *a_inv, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length
 		{
 			if(n_length>a_length)
 			{
-				DTYPE *u_BN=(DTYPE *)malloc(sizeof(DTYPE)*n_length);
-				if(u_BN == NULL)
-				{
-					printf("Wrong with malloc\n");
-					exit(-1);
-				}
-				BN_init(u_BN, n_length);
+				DTYPE u_BN[MAX_MODULUS_LENGTH*2+1];
+				memset(u_BN, 0, MAX_MODULUS_LENGTH*2+1);
+
+				// BN_init(u_BN, n_length);
 				for(i=n_length-1, j=a_length-1; i>=0 && j>=0; i--, j--)
 				{
 					u_BN[i]=u.bn[j];
@@ -586,7 +572,7 @@ void BN_mod_inv(DTYPE *a_inv, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length
 				{
 					u.bn[j]=u_BN[i];
 				}
-				if(u_BN != NULL) free(u_BN);
+				memset(u_BN, 0, MAX_MODULUS_LENGTH*2+1);
 			}
 			else
 			{
@@ -616,7 +602,7 @@ void BN_mod_inv(DTYPE *a_inv, DTYPE *a, DTYPE a_length, DTYPE *n, DTYPE n_length
 	 	BN_sub(a_inv, n_length, a_inv, n_length, n, n_length);
 	}
 
-	if(ntmp!=NULL) free(ntmp);
+	memset(ntmp, 0, MAX_MODULUS_LENGTH*2+1);
 }
 
 //compute a_inv, a_inv*a=1(mod 2^WORD_SIZE)
@@ -865,12 +851,11 @@ void signBN_init(sm *r, DTYPE len)
 	int i;
 	r->flag=1;
 	r->length=len;
-	r->bn=(DTYPE *)malloc(sizeof(DTYPE)*len);
-	if(r->bn == NULL)
-	{
-		printf("Wrong with malloc\n");
-		exit(-1);
-	}
+
+	DTYPE tmp[MAX_MODULUS_LENGTH];
+	memset(tmp, 0, MAX_MODULUS_LENGTH);
+	r->bn = &tmp;
+
 	for(i=0; i<len; i++)
 	{
 		r->bn[i]=0;
@@ -881,12 +866,11 @@ void signBN_init_assign(sm *r, DTYPE *a, DTYPE a_length)
 {
 	r->flag=1;
 	r->length=a_length;
-	r->bn=(DTYPE *)malloc(sizeof(DTYPE)*a_length);
-	if(r->bn == NULL)
-	{
-		printf("Wrong with malloc\n");
-		exit(-1);
-	}
+
+	DTYPE tmp[MAX_MODULUS_LENGTH];
+	memset(tmp, 0, MAX_MODULUS_LENGTH);
+	r->bn = &tmp;
+
 	BN_assign(r->bn, a, a_length);
 }
 
@@ -910,12 +894,14 @@ void BN_signAddShift(sm *a, DTYPE *n, DTYPE *tmp)
 		}
 		else
 		{
-			DTYPE *nc=(DTYPE *)malloc(sizeof(DTYPE)*a->length);
-			if(nc==NULL)
-			{
-				printf("Wrong with malloc\n");
-				exit(-1);
-			}
+			// DTYPE *nc=(DTYPE *)malloc(sizeof(DTYPE)*a->length);
+			DTYPE nc[MAX_MODULUS_LENGTH];
+			memset(nc, 0, MAX_MODULUS_LENGTH);
+			// if(nc==NULL)
+			// {
+			// 	printf("Wrong with malloc\n");
+			// 	exit(-1);
+			// }
 			nc[0]=0;
 			for(i=1; i<a->length; i++)
 			{
@@ -923,7 +909,7 @@ void BN_signAddShift(sm *a, DTYPE *n, DTYPE *tmp)
 			}
 			BN_sub(a->bn, a->length, nc, a->length, a->bn, a->length);
 			a->flag=1;
-			if(nc!=NULL) free(nc);
+			memset(nc, 0, MAX_MODULUS_LENGTH);
 		}
 		BN_right_shift(a->bn, a->length, 1);
 	}
