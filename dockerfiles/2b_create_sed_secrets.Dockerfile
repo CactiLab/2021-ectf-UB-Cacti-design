@@ -17,11 +17,6 @@ ARG SCEWL_ID
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
 
 ##############################
-# This test is done
-ADD create_secret.py create_secret
-RUN python3 create_secret ${SCEWL_ID} generate_key
-
-##############################
 # generate rsa key files for SCEWL_ID
 ADD rsa /rsa
 RUN mkdir /${SCEWL_ID}
@@ -30,5 +25,10 @@ RUN make
 RUN ./rsatest
 RUN mv privateKey.txt publicKey.txt /${SCEWL_ID}
 RUN make clean
+
+##############################
+# Read key files from the sss/$SCEWL_ID/ to generate the key.h file
+ADD create_secret.py create_secret
+RUN python3 create_secret ${SCEWL_ID} generate_key
 
 ##############################
