@@ -10,7 +10,7 @@
 #include <stdlib.h>
 // #include <time.h>
 #include "controller.h"
-#include "sha256.h"
+// #include "rsa.h"
 
 // this will run if EXAMPLE_AES is defined in the Makefile
 #ifdef EXAMPLE_AES

@@ -81,23 +81,44 @@ CFLAGS+=-DAES_GCM
 all: ${COMPILER}/gcm.o aes.o aes-gcm.o
 endif
 
-################ add sha256 ################
-
+################ add RSA512 ################
+RSA512=foo
+ifdef RSA512
 # path to auth library
-SHA256PATH=./auth
+RSA512PATH=./rsa
 
 # add path to auth source files to source path
-VPATH+=${SHA256PATH}
+VPATH+=${RSA512PATH}
 
 # add auth library to includes path
-IPATH+=${SHA256PATH}
+IPATH+=${RSA512PATH}
 
 # add auth object file to includes path
-LDFLAGS+=${COMPILER}/sha256.o
+LDFLAGS+=${COMPILER}/keys.o bn.o rsa.o
 
 # add rule to build auth library
-all: ${COMPILER}/sha256.o
+all: ${COMPILER}/keys.o bn.o rsa.o
+endif
 
+# ################ add sha256 ################
+
+# # path to auth library
+# SHA256PATH=./auth
+
+# # add path to auth source files to source path
+# VPATH+=${SHA256PATH}
+
+# # add auth library to includes path
+# IPATH+=${SHA256PATH}
+
+# # add auth object file to includes path
+# LDFLAGS+=${COMPILER}/sha256.o
+
+# # add rule to build auth library
+# all: ${COMPILER}/sha256.o
+
+
+###########################################
 # this must be the last build rule of `all`
 all: ${COMPILER}/controller.axf
 

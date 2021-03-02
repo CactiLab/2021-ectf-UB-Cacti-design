@@ -93,3 +93,16 @@ designdoc/SystemDesign.fdb_latexmk
 designdoc/SystemDesign.fls
 designdoc/UB-SystemDesign.pdf
 socks/.gitkeep
+
+#==============================================================================#
+# Files created in tree by the RSA.
+#==============================================================================#
+controller/RSA-module/ciphertext.txt
+controller/RSA-module/plaintext.txt
+controller/RSA-module/privateKey.txt
+controller/RSA-module/publicKey.txt
+
+sss/RSA-module/ciphertext.txt
+sss/RSA-module/plaintext.txt
+sss/RSA-module/privateKey.txt
+sss/RSA-module/publicKey.txt
