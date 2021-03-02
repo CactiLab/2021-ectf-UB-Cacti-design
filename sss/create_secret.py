@@ -93,13 +93,15 @@ def enc_input(scewl_id):
 #ifndef KEY_H
 #define KEY_H
 #include "keys.h"
-#endif
 
     ''')
 
     write_into_header_file("rsa_sk", key_file_header, pirvateKey_Lines, "private_key", 11)
     write_into_header_file("rsa_pk", key_file_header, publicKey_Lines, "public_key", 3)
-
+    
+    key_file_header.write(f'''
+#endif    
+    ''')
 if __name__ == '__main__':
     #read input from command line
     read_input()
