@@ -23,7 +23,7 @@ SSS_ID = 1
 
 ### registration_tmp and deregistration_tmp test
 import rsa
-provisionedList = [0,1,2]
+provisionedList = [0,2]
 dedicatedList = []
 ### registration_tmp and deregistration_tmp test
 
@@ -185,7 +185,6 @@ def createTmpMsg(deviceID):
 
     return signedMsg
 
-
 def registration_tmp(signedMsg):   
 
     ### STEP1 read the SCEWL_ID of the signed message
@@ -234,10 +233,11 @@ def registration_tmp(signedMsg):
                 print(dedicatedList)
 
                 print(str(deviceID_i) + " registration done!\r\n")
-            ### NEED TO DO STEP5 read local public key files and send them to the SED
+                ### NEED TO DO STEP5 read local public key files and send them to the SED
 
-            #the public key file need to send is:
-            #   str(deviceID_i) + "_send" + ".pub"
+                #the public key file need to send is:
+                #   str(deviceID_i) + "_send" + ".pub"
+                sendAllPubKeys()
 
         except:
             return False
@@ -288,6 +288,23 @@ def deregistration_tmp(signedMsg):
             return False
     return 
 
+def sendAllPubKeys():
+    for deviceID_i in provisionedList:
+        pubKeyFileName = str(deviceID_i) + ".pub_send"
+        readFile = open(pubKeyFileName, "r")
+        module_s = readFile.readline().strip()
+        publicExponent_s = readFile.readline().strip()
+
+
+        module_bytes = bytes(module_s, 'utf-8') 
+        publicKey_bin = struct.pack("I%dsH" % (len(module_bytes),), len(module_bytes), module_bytes, deviceID_i)
+        # Qiqing Huang note:
+        # Here I found the public exponent is always 00010001, so just need to send out the module_bin
+        # print(publicKey_bin)
+        # pending test of the csock.send()
+        csock.send(publicKey_bin)
+
+
 
 
 def main():
@@ -299,6 +316,13 @@ def main():
     ### registration_tmp and deregistration_tmp test
 
     
+    ### test of sending all public keys
+    # sendAllPubKeys()
+    ### test of sending all public keys
+
+
+
+
     args = parse_args()
 
     # map of SCEWL IDs to statuses
