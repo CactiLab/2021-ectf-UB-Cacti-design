@@ -25,6 +25,7 @@ def del_input(scewl_id):
     pub_path = "/" + str(scewl_id) + "/privateKey.txt"
     pri_path = "/" + str(scewl_id) + "/publicKey.txt"
     keyHeader_path = "/" + str(scewl_id) + "/key.h"
+    
     if os.path.exists(pub_path) and os.path.exists(pri_path):
         os.remove(pub_path)
         os.remove(pri_path)
@@ -57,6 +58,7 @@ def write_into_header_file(struct_name, key_file_header, list_of_key_values, nam
     0x{dValue},
             ''')
         cnt = cnt + 1
+
     key_file_header.write(f'''
 }};
   
@@ -94,6 +96,7 @@ def enc_input(scewl_id):
 #endif
 
     ''')
+
     write_into_header_file("rsa_sk", key_file_header, pirvateKey_Lines, "private_key", 11)
     write_into_header_file("rsa_pk", key_file_header, publicKey_Lines, "public_key", 3)
 
