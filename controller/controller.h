@@ -89,7 +89,7 @@ typedef struct scewl_msg_t
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
-  uint8_t body[SCEWL_MAX_DATA_SZ];
+  uint8_t crypto_msg[SCEWL_MAX_DATA_SZ];
 } scewl_msg_t;
 
 typedef struct scewl_crypto_msg_hdr_t
