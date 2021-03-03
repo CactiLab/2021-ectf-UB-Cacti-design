@@ -35,6 +35,7 @@ typedef uint16_t scewl_id_t;
 #define CRYPTO_SIZE 16
 
 #define keyLen 32
+#define keyCryptoLen 64
 #define ivLen 12
 #define aadLen 0
 #define ptLen 16
@@ -54,7 +55,7 @@ typedef uint16_t scewl_id_t;
 // #define DEBUG_MSG_CRYPTO 1
 // #define DEBUG_TIMER 1
 // #define SQ_DEBUG 1
-// #define KEY_CRYPTO 1
+#define KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
 /******************************** end crypto ********************************/
 
@@ -74,14 +75,14 @@ typedef struct scewl_hdr_t
 // size: keyLen + ivLen + tagLen + crypto_bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
 typedef struct scewl_msg_hdr_t
 {
-  uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
+  uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
 } scewl_msg_hdr_t;
 
 typedef struct scewl_msg_t
 {
-  uint8_t aes_key[keyLen]; // asymmetric encrypted aes key
+  uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];       //
   uint8_t tag[tagLen];
   uint8_t body[SCEWL_MAX_DATA_SZ];

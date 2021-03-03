@@ -10,6 +10,8 @@
 #include <stdlib.h>
 // #include <time.h>
 #include "controller.h"
+#include "rsa.h"
+#include "key.h"
 
 // this will run if EXAMPLE_AES is defined in the Makefile
 #ifdef EXAMPLE_AES
@@ -24,16 +26,13 @@ char int2char(uint8_t i)
 }
 #endif
 
-#ifdef RSA_TEST
-#include "rsa.h"
-#include "key.h"
-#endif
-
 // message buffer
 char buf[SCEWL_MAX_DATA_SZ];
 //sequence number structure
 sequence_num_t messeage_sq;
 
+volatile rsa_pk *pk = &public_key;
+volatile rsa_sk *sk = &private_key;
 volatile uint32_t sysTimer = 0;
 
 void SysTick_Handler(void)
@@ -41,14 +40,49 @@ void SysTick_Handler(void)
   sysTimer++;
 }
 
-int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
+int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
 {
+  uint8_t message[MAX_MODULUS_LENGTH * 2] = {0};
+  // uint8_t tmp[32] = {0};
+  DTYPE msg[MAX_MODULUS_LENGTH] = {0};
+  DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE plaintext[MAX_MODULUS_LENGTH] = {0};
+
+  // configure the e
+  BN_init(pk->e, MAX_PRIME_LENGTH);
+  //e=2^16+1
+  pk->e[MAX_PRIME_LENGTH - 2] = 1;
+  pk->e[MAX_PRIME_LENGTH - 1] = 1;
+
+  memcpy(message, scewl_msg->aes_key, keyCryptoLen);
+
+  int i;
+  int j = MAX_MODULUS_LENGTH - 1;
+  for (i = 63 - 1; i >= 1; i -= 2)
+  {
+    msg[j--] = (message[i - 1] << 8) | message[i];
+  }
+  if (i == 0)
+  {
+    msg[j--] = message[i];
+  }
+  while (j >= 0)
+  {
+    msg[j--] = 0;
+  }
+
+  send_str("crypto->aes_key before Encryption...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)message);
+  send_str("aes_key before Encryption...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)msg);
+
   switch (tgt_id)
   {
     // handler broadcast aes_key crypto, private key to sign, public key to auth
   case SCEWL_BRDCST_ID:
     /* code */
-    // rsa_sign(&crypto_msg);
+    // rsa_sign(&scewl_msg);
     break;
   case SCEWL_SSS_ID:
     break;
@@ -57,20 +91,47 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
 
     // default means scewl messages, public key to encrypt, private key to decrypt
   default:
-    // rsa_enc(&crypto_msg);
+    send_str("aes_key Encryption starts...\n");
+    rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, pk);
+    send_str("aes_key Encryption done...\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
+    memcpy(scewl_msg->aes_key, (uint8_t *)&cipher, keyCryptoLen);
     break;
+  }
+  // memset(enc_aes_key, 0, keyLen);
+
+  send_str("Decryption starts...\n");
+  send_str("sk->d1...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
+  rsa_decrypt(decipher, MAX_MODULUS_LENGTH, scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
+  send_str("Decryption done...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+  hex_to_string(plaintext, decipher);
+  send_str("Plaintext...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+  if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
+  {
+    send_str("\nAfter decryption, plaintext equal to message.\n");
+  }
+  else
+  {
+    send_str("\nAfter decryption, wrong answer.\n");
   }
   return 0;
 }
 
-int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
+int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
 {
+  DTYPE ciphertext[MAX_MODULUS_LENGTH] = {0};
+  DTYPE plaintext[MAX_MODULUS_LENGTH] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
+
   switch (tgt_id)
   {
     // handler broadcast aes_key crypto, private key to sign, public key to auth
   case SCEWL_BRDCST_ID:
     /* code */
-    // rsa_auth(&crypto_msg);
+    // rsa_auth(&scewl_msg);
     break;
   case SCEWL_SSS_ID:
     break;
@@ -79,9 +140,23 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *crypto_msg)
 
     // default means scewl messages, public key to encrypt, private key to decrypt
   default:
-    // rsa_dec(&crypto_msg);
+    send_str("aes_key Decryption starts...\n");
+    // string_to_hex(msg, message);
+    send_str("aes_key before decryption...\n");
+    // sk = &private_key;
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)scewl_msg->aes_key);
+    send_str("sk->d1...\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
+    rsa_decrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
+    send_str("decipher...\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+    hex_to_string(plaintext, decipher);
+    send_str("aes_key Decryption done...\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+    memcpy(scewl_msg->aes_key, (uint8_t *)&plaintext, keyCryptoLen);
     break;
   }
+  // memset(dec_aes_key, 0, keyLen);
   return 0;
 }
 
@@ -118,15 +193,15 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   scewl_msg_t msg;
   scewl_crypto_msg_t crypto_msg;
 
-  uint8_t key[keyLen];
-  uint8_t iv[ivLen];
+  uint8_t key[keyCryptoLen] = {0};
+  uint8_t iv[ivLen] = {0};
   int i = 0;
 
   uint8_t plaintext[enc_len];
   uint8_t ciphertext[enc_len];
 
   // initialize the structures
-  memset(key, 0, keyLen);
+  memset(key, 0, keyCryptoLen);
   memset(iv, 0, ivLen);
   memset(ciphertext, 0, enc_len);
   memset(plaintext, 0, enc_len);
@@ -141,7 +216,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   send_str("timer:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&sysTimer);
 #endif
-  for (i = 0; i < keyLen; i++)
+  for (i = 0; i < keyCryptoLen - 1; i++)
   {
     key[i] = rand() % 256;
   }
@@ -159,7 +234,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memcpy(crypto_msg.body, data, len);                // setup the plaintext
 
   // setup the scewl message
-  memcpy(msg.aes_key, key, keyLen);
+  memcpy(msg.aes_key, key, keyCryptoLen);
   memcpy(msg.iv, iv, ivLen);
 
 #ifdef SQ_DEBUG
@@ -170,22 +245,22 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 #ifdef DEBUG_MSG_CRYPTO
   send_str("------------------------------------------------------------------:\n");
   send_str("test enc message:\n");
-  send_str("src_id:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.src_id);
-  send_str("tgt_id:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.tgt_id);
-  send_str("crypto len:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.len);
+  // send_str("src_id:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.src_id);
+  // send_str("tgt_id:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.tgt_id);
+  // send_str("crypto len:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.len);
   send_str("plaintext:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)crypto_msg.body);
-  send_str("crypto len:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 8, (char *)crypto_msg.len);
-  send_str("sq:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.sq);
+  // send_str("crypto len:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 8, (char *)crypto_msg.len);
+  // send_str("sq:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.sq);
   send_str("key:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyLen, (char *)msg.aes_key);
-  send_str("iv:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)msg.iv);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg.aes_key);
+  // send_str("iv:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)msg.iv);
 #endif
 
   // initialize context
@@ -196,9 +271,9 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memcpy(msg.body, ciphertext, enc_len);
 
 #ifdef KEY_CRYPTO
-
   key_enc(src_id, tgt_id, &msg);
-
+  send_str("encrypted key...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg.aes_key);
 #endif
 
 #ifdef KEY_CRYPTO
@@ -211,7 +286,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   send_str("ciphertext in msg body:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)msg.body);
   send_str("------------------------------------------------------------------:\n");
-  // memset(ciphertext, 0, 16);
+  memset(ciphertext, 0, 16);
 #endif
 
   // send header
@@ -247,52 +322,70 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 
   msg = (scewl_msg_t *)data;
 
-// decrypt the aes_key
-#ifdef KEY_CRYPTO
-
-  key_dec(src_id, tgt_id, &crypto_msg);
-
-#endif
-
-  // initialize context
-  gcm_initialize();
-
 #ifdef DEBUG_MSG_CRYPTO
   send_str("------------------------------------------------------------------:\n");
   send_str("test auth message:\n");
   send_str("key:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyLen, (char *)msg->aes_key);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg->aes_key);
   send_str("iv:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)msg->iv);
   send_str("tag:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)msg->tag);
   send_str("ciphertext:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)msg->body);
-  send_str("------------------------------------------------------------------:\n");
+  // send_str("------------------------------------------------------------------:\n");
+#endif
+
+// decrypt the aes_key
+#ifdef KEY_CRYPTO
+  key_dec(src_id, tgt_id, msg);
+  send_str("decrypted key...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg->aes_key);
+#endif
+
+  // initialize context
+  gcm_initialize();
+
+#ifdef DEBUG_MSG_CRYPTO
+  // send_str("------------------------------------------------------------------:\n");
+  // send_str("test auth message:\n");
+  send_str("key:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg->aes_key);
+  // send_str("iv:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)msg->iv);
+  // send_str("tag:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)msg->tag);
+  // send_str("ciphertext:\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)msg->body);
+  // send_str("------------------------------------------------------------------:\n");
 #endif
   int ret = 0;
   ret = aes_gcm_decrypt_auth(plaintext, (const uint8_t *)msg->body, dec_len, msg->aes_key, keyLen, msg->iv, ivLen, msg->tag, tagLen);
+
 #ifdef DEBUG_MSG_CRYPTO
   send_str("plaintext before checking header:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)plaintext);
 #endif
+
   if (ret == 0)
   {
+
 #ifdef DEBUG_MSG_CRYPTO
-    send_str("plaintext:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)plaintext);
+    // send_str("plaintext:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)plaintext);
 #endif
+
     send_str("Checkging the header...\n");
     crypto_msg = (scewl_crypto_msg_t *)plaintext;
 #ifdef DEBUG_MSG_CRYPTO
-    send_str("src_id:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->src_id);
-    send_str("tgt_id:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->tgt_id);
-    send_str("crypto len:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->len);
-    send_str("sq:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->sq);
+    // send_str("src_id:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->src_id);
+    // send_str("tgt_id:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->tgt_id);
+    // send_str("crypto len:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->len);
+    // send_str("sq:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->sq);
     send_str("plaintext:\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, hdr.len, (char *)crypto_msg->body);
 #endif
@@ -679,10 +772,19 @@ int main()
 #endif
 
 #ifdef RSA_TEST
-  uint8_t message[MAX_MODULUS_LENGTH * 2] = {0x2d, 0xb5, 0x16, 0x8e,
-                                             0x93, 0x25, 0x56, 0xf8,
-                                             0x08, 0x9a, 0x06, 0x22,
-                                             0x98, 0x1d, 0x01, 0x7d};
+  // uint8_t tmp[16] = {0x2d, 0xb5, 0x16, 0x8e,
+  //                    0x93, 0x25, 0x56, 0xf8,
+  //                    0x08, 0x9a, 0x06, 0x22,
+  //                    0x98, 0x1d, 0x01, 0x7d};
+
+  uint8_t message[64] = {0xbd, 0xbd, 0x2d, 0x7d, 0x92, 0x89, 0x01, 0x7d,
+                         0x85, 0x01, 0x7d, 0x7d, 0x7d, 0x9c, 0xbb, 0x08,
+                         0x03, 0x08, 0x08, 0xcf, 0xf3, 0x08, 0x08, 0x94,
+                         0xe9, 0x08, 0xca, 0x94, 0x08, 0xfb, 0x08, 0xaf,
+                         0xbd, 0xbd, 0x2d, 0x7d, 0x92, 0x89, 0x01, 0x7d,
+                         0x85, 0x01, 0x7d, 0x7d, 0x7d, 0x9c, 0xbb, 0x08,
+                         0x03, 0x08, 0x08, 0xcf, 0xf3, 0x08, 0x08, 0x94,
+                         0xe9, 0x08, 0xca, 0x94, 0x08, 0xfb, 0x08};
 
   rsa_pk *pk = &public_key;
   rsa_sk *sk = &private_key;
@@ -696,29 +798,43 @@ int main()
   DTYPE msg[MAX_MODULUS_LENGTH] = {0};
   DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
   DTYPE plaintext[MAX_MODULUS_LENGTH] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
 
-  // char message[MAX_MODULUS_LENGTH * 2];
-  // char ciphertext[MAX_MODULUS_LENGTH * 4 + 1];
+  int i;
+  int j = MAX_MODULUS_LENGTH - 1;
+  for (i = 63 - 1; i >= 1; i -= 2)
+  {
+    msg[j--] = (message[i - 1] << 8) | message[i];
+  }
+  if (i == 0)
+  {
+    msg[j--] = message[i];
+  }
+  while (j >= 0)
+  {
+    msg[j--] = 0;
+  }
 
-  //read message from file
-  // fp = fopen(m , "r");
-  // if(fp==NULL){
-  //     printf("Cannot open file %s\n", m);
-  //     return 0;
-  // }
-  // fgets(message, MAX_MODULUS_LENGTH * 2, fp);
-  // fclose(fp);
-  // string_to_hex(msg, message);
+
+  send_str("message...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
+  send_str("msg...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&msg);
 
   send_str("Encryption starts...\n");
   rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, pk);
   send_str("Encryption done...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
 
   send_str("Decryption starts...\n");
-  rsa_decrypt(plaintext, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, sk);
+  rsa_decrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, sk);
   send_str("Decryption done...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+  hex_to_string(plaintext, decipher);
+  send_str("Plaintext...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
 
-  if (BN_cmp(msg, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
+  if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
   {
     send_str("\nAfter decryption, plaintext equal to message.\n");
   }
