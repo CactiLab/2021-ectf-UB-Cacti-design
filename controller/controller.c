@@ -83,8 +83,8 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
   {
     // handler broadcast aes_key crypto, private key to sign, public key to auth
   case SCEWL_BRDCST_ID:
-    /* code */
-    // rsa_sign(&scewl_msg);
+    /* sign */
+    rsa_decrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, sk);
     break;
   case SCEWL_SSS_ID:
     break;
@@ -144,8 +144,8 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
   {
     // handler broadcast aes_key crypto, private key to sign, public key to auth
   case SCEWL_BRDCST_ID:
-    /* code */
-    // rsa_auth(&scewl_msg);
+    /* verify */
+    rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, pk);
     break;
   case SCEWL_SSS_ID:
     break;
@@ -852,6 +852,80 @@ int main()
 
   send_str("Decryption starts...\n");
   rsa_decrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, sk);
+  send_str("Decryption done...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+  hex_to_string(plaintext, decipher);
+  send_str("Plaintext...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+
+  if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
+  {
+    send_str("\nAfter decryption, plaintext equal to message.\n");
+  }
+  else
+  {
+    send_str("\nAfter decryption, wrong answer.\n");
+  }
+#endif
+
+#ifdef RSA_SIG_TEST
+  // uint8_t tmp[16] = {0x2d, 0xb5, 0x16, 0x8e,
+  //                    0x93, 0x25, 0x56, 0xf8,
+  //                    0x08, 0x9a, 0x06, 0x22,
+  //                    0x98, 0x1d, 0x01, 0x7d};
+
+  uint8_t message[64] = {0xbd, 0xbd, 0x2d, 0x7d, 0x92, 0x89, 0x01, 0x7d,
+                         0x85, 0x01, 0x7d, 0x7d, 0x7d, 0x9c, 0xbb, 0x08,
+                         0x03, 0x08, 0x08, 0xcf, 0xf3, 0x08, 0x08, 0x94,
+                         0xe9, 0x08, 0xca, 0x94, 0x08, 0xfb, 0x08, 0xaf,
+                         0xbd, 0xbd, 0x2d, 0x7d, 0x92, 0x89, 0x01, 0x7d,
+                         0x85, 0x01, 0x7d, 0x7d, 0x7d, 0x9c, 0xbb, 0x08,
+                         0x03, 0x08, 0x08, 0xcf, 0xf3, 0x08, 0x08, 0x94,
+                         0xe9, 0x08, 0xca, 0x94, 0x08, 0xfb, 0x08};
+
+  rsa_pk *pk = &public_key;
+  rsa_sk *sk = &private_key;
+
+  // configure the e
+  BN_init(pk->e, MAX_PRIME_LENGTH);
+  //e=2^16+1
+  pk->e[MAX_PRIME_LENGTH - 2] = 1;
+  pk->e[MAX_PRIME_LENGTH - 1] = 1;
+
+  DTYPE msg[MAX_MODULUS_LENGTH] = {0};
+  DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE plaintext[MAX_MODULUS_LENGTH] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
+
+  int i;
+  int j = MAX_MODULUS_LENGTH - 1;
+  for (i = 63 - 1; i >= 1; i -= 2)
+  {
+    msg[j--] = (message[i - 1] << 8) | message[i];
+  }
+  if (i == 0)
+  {
+    msg[j--] = message[i];
+  }
+  while (j >= 0)
+  {
+    msg[j--] = 0;
+  }
+
+  send_str("message...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
+  send_str("msg...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&msg);
+
+  send_str("Sign starts...\n");
+  // rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, pk);
+  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, sk);
+  send_str("Sign done...\n\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
+
+  send_str("Decryption starts...\n");
+  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, pk);
+  // rsa_decrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, sk);
   send_str("Decryption done...\n\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
   hex_to_string(plaintext, decipher);

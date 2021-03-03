@@ -47,6 +47,7 @@ typedef uint16_t scewl_id_t;
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
 // #define RSA_TEST
+// #define RSA_SIG_TEST
 /******************************** end example ********************************/
 
 
