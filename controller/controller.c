@@ -72,10 +72,12 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
     msg[j--] = 0;
   }
 
+#ifdef DEBUG_KEY_CRYPTO
   send_str("crypto->aes_key before Encryption...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)message);
   send_str("aes_key before Encryption...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)msg);
+#endif
 
   switch (tgt_id)
   {
@@ -91,24 +93,34 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
 
     // default means scewl messages, public key to encrypt, private key to decrypt
   default:
-    send_str("aes_key Encryption starts...\n");
+    // send_str("aes_key Encryption starts...\n");
     rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, pk);
+
+#ifdef DEBUG_KEY_CRYPTO
     send_str("aes_key Encryption done...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
+#endif
+
     memcpy(scewl_msg->aes_key, (uint8_t *)&cipher, keyCryptoLen);
     break;
   }
   // memset(enc_aes_key, 0, keyLen);
 
+#ifdef DEBUG_KEY_CRYPTO
   send_str("Decryption starts...\n");
   send_str("sk->d1...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
+#endif
   rsa_decrypt(decipher, MAX_MODULUS_LENGTH, scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
+  hex_to_string(plaintext, decipher);
+
+#ifdef DEBUG_KEY_CRYPTO
   send_str("Decryption done...\n\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
-  hex_to_string(plaintext, decipher);
+
   send_str("Plaintext...\n\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+
   if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
   {
     send_str("\nAfter decryption, plaintext equal to message.\n");
@@ -117,6 +129,8 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
   {
     send_str("\nAfter decryption, wrong answer.\n");
   }
+#endif
+
   return 0;
 }
 
@@ -140,19 +154,26 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
 
     // default means scewl messages, public key to encrypt, private key to decrypt
   default:
+
+#ifdef DEBUG_KEY_CRYPTO
     send_str("aes_key Decryption starts...\n");
-    // string_to_hex(msg, message);
     send_str("aes_key before decryption...\n");
-    // sk = &private_key;
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)scewl_msg->aes_key);
     send_str("sk->d1...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
+#endif
     rsa_decrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
+#ifdef DEBUG_KEY_CRYPTO
     send_str("decipher...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+#endif
+
     hex_to_string(plaintext, decipher);
+
+#ifdef DEBUG_KEY_CRYPTO
     send_str("aes_key Decryption done...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+#endif
     memcpy(scewl_msg->aes_key, (uint8_t *)&plaintext, keyCryptoLen);
     break;
   }
@@ -272,8 +293,10 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
 #ifdef KEY_CRYPTO
   key_enc(src_id, tgt_id, &msg);
+  #ifdef DEBUG_KEY_CRYPTO
   send_str("encrypted key...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg.aes_key);
+  #endif
 #endif
 
 #ifdef KEY_CRYPTO
@@ -339,8 +362,10 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 // decrypt the aes_key
 #ifdef KEY_CRYPTO
   key_dec(src_id, tgt_id, msg);
+  #ifdef DEBUG_KEY_CRYPTO
   send_str("decrypted key...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)msg->aes_key);
+  #endif
 #endif
 
   // initialize context
@@ -814,7 +839,6 @@ int main()
   {
     msg[j--] = 0;
   }
-
 
   send_str("message...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);

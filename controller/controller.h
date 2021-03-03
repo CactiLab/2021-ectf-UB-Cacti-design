@@ -56,6 +56,7 @@ typedef uint16_t scewl_id_t;
 // #define DEBUG_TIMER 1
 // #define SQ_DEBUG 1
 #define KEY_CRYPTO 1
+// #define DEBUG_KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
 /******************************** end crypto ********************************/
 
