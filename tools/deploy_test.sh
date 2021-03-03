@@ -24,13 +24,15 @@ export SSS_SOCK=sss.sock
 export FAA_SOCK=faa.sock
 export MITM_SOCK=mitm.sock
 export START_ID=10
-export END_ID=13
+export END_ID=14
 
 # create deployment
 make create_deployment
 make add_sed SED=echo_server SCEWL_ID=10 NAME=echo_server
 make add_sed SED=echo_client SCEWL_ID=11 NAME=echo_client CUSTOM='TGT_ID=10'
-make add_sed SED=test_sed SCEWL_ID=12 NAME=test_sed
+#make add_sed SED=test_sed SCEWL_ID=12 NAME=test_sed
+make add_sed SED=broad_cast_SED SCEWL_ID=12 NAME=broad_cast_SED
+make add_sed SED=echo_server2 SCEWL_ID=13 NAME=echo_server2
 
 # launch deployment
 make deploy
@@ -43,8 +45,14 @@ make launch_sed_d NAME=echo_server SCEWL_ID=10
 sleep 1
 make launch_sed_d NAME=echo_client SCEWL_ID=11
 
+#sleep 1
+#make launch_sed_d NAME=test_sed SCEWL_ID=12
+
 sleep 1
-make launch_sed_d NAME=test_sed SCEWL_ID=12
+make launch_sed_d NAME=broad_cast_SED SCEWL_ID=12
+
+sleep 1
+make launch_sed_d NAME=echo_server2 SCEWL_ID=13
 # bring transceiver back into foreground
 fg
 
