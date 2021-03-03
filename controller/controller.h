@@ -12,6 +12,7 @@
 
 #include "interface.h"
 #include "lm3s/lm3s_cmsis.h"
+#include "keys.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -53,6 +54,7 @@ typedef uint16_t scewl_id_t;
 
 /******************************** start crypto ********************************/
 #define MSG_CRYPTO 1
+// #define REG_CRYPTO 1
 // #define DEBUG_MSG_CRYPTO 1
 // #define DEBUG_TIMER 1
 // #define SQ_DEBUG 1
@@ -127,6 +129,12 @@ typedef struct scewl_sss_crypto_msg_t
   scewl_id_t dev_id;
   uint16_t op;
 } scewl_sss_crypto_msg_t;
+
+typedef struct scewl_pub_t
+{
+  scewl_id_t scewl_id;
+  rsa_pk *pk;
+}scewl_pub_t;
 
 // SCEWL status codes
 enum scewl_status
