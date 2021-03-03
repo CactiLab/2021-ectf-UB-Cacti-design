@@ -17,6 +17,9 @@ ARG SCEWL_ID
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
 
 ##############################
+RUN echo ${SCEWL_ID} >> /provisoned_list
+
+##############################
 # generate rsa key files for SCEWL_ID
 ADD rsa /rsa
 RUN mkdir /${SCEWL_ID}

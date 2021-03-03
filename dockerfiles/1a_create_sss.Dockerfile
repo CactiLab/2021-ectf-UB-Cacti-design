@@ -19,6 +19,9 @@ RUN pip3 install rsa
 # add any deployment-wide secrets here
 RUN mkdir /secrets
 
+##############################
+RUN touch provisoned_list
+
 # map in SSS
 # NOTE: only sss/ and its subdirectories in the repo are accessible to this Dockerfile as .
 # NOTE: you can do whatever you need here to create the sss program, but it must end up at /sss
