@@ -35,6 +35,9 @@ volatile rsa_pk *pk = &public_key;
 volatile rsa_sk *sk = &private_key;
 volatile uint32_t sysTimer = 0;
 
+// an array to store all provisoned sed's public key
+volatile rsa_pk scew_pk[max_sequenced_SEDS] = {0};
+
 void SysTick_Handler(void)
 {
   sysTimer++;
@@ -535,6 +538,9 @@ int send_auth_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   hdr.tgt_id = tgt_id;
   hdr.len = len;
 
+  scewl_pub_t *tmp = (scewl_pub_t *)&data;
+  memcpy(scew_pk[data->scewl_id], data->pk, sizeof(rsa_pk));
+  
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
