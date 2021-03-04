@@ -63,11 +63,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (fread(&pk, sizeof(rsa_pk), 1, fp) == NULL)
-    {
-        printf("Read file error! %s\n", pub_file);
-        return -1;
-    }
+    fread(&pk, sizeof(rsa_pk), 1, fp);
     fclose(fp);
 
     // configure the e
@@ -88,11 +84,7 @@ int main(int argc, char *argv[])
         printf("Cannot open file %s\n", pri_file);
         return -1;
     }
-    if (fread(&sk, sizeof(rsa_sk), 1, fp) == NULL)
-    {
-        printf("Read file error! %s\n", pri_file);
-        return -1;
-    }
+    fread(&sk, sizeof(rsa_sk), 1, fp);
     fclose(fp);
 
     printf("print privatekey..\n");
@@ -128,7 +120,7 @@ int main(int argc, char *argv[])
 
     //write ciphertext into file
     fp = fopen(c, "wb");
-    fwrite(cipher, 1, MAX_MODULUS_LENGTH*2, fp);
+    fwrite(cipher, 1, MAX_MODULUS_LENGTH * 2, fp);
     fclose(fp);
 
     printf("Verify starts...\n");

@@ -31,5 +31,5 @@ $(OUTPUT3) : $(OBJS)
 
 clean:
 	# @rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt publicKey privateKey
-	@rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt
+	@rm $(OUTPUTLIST)
 .PHONY:clean

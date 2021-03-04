@@ -1,5 +1,14 @@
 #ifdef _AUTH_
 
+/***********************************************************************************
+ * 
+ * This file is used to verify the signed messages
+ * Input: cipher (should be written by sss.py, raw data)
+ * Output: decipher (decrypted messages, will be read by sss.py to verify the header)
+ * Usage: ./auth ${SCEWL_ID}
+
+***********************************************************************************/
+
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
@@ -11,7 +20,6 @@
 int main(int argc, char *argv[])
 {
     rsa_pk pk;
-    rsa_sk sk;
 
     DTYPE msg[MAX_MODULUS_LENGTH] = {0};
     DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
@@ -22,16 +30,16 @@ int main(int argc, char *argv[])
     char plainmsg[MAX_MODULUS_LENGTH * 2 + 1];
 
     char *m = "message.txt";
-    char *c = "aes_key";
-    char *p = "auth_aes_key";
+    char *c = "cipher";
+    char *p = "decipher";
     char pub_file[100] = {0};
     char pri_file[100] = {0};
 
     memset(&pk, 0, sizeof(rsa_pk));
-    memset(&sk, 0, sizeof(rsa_sk));
 
     if (argc < 2)
     {
+        printf("usage: ./auth ${SCEWL_ID}\n");
         return -1;
     }
 
@@ -54,11 +62,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (fread(&pk, sizeof(rsa_pk), 1, fp) == NULL)
-    {
-        printf("Read file error! %s\n", pub_file);
-        return -1;
-    }
+    fread(&pk, sizeof(rsa_pk), 1, fp);
     fclose(fp);
 
     // configure the e
@@ -67,20 +71,6 @@ int main(int argc, char *argv[])
     pk.e[MAX_PRIME_LENGTH - 2] = 1;
     pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
-    // read private key from file
-    fp = fopen(pri_file, "rb");
-    if (fp == NULL)
-    {
-        printf("Cannot open file %s\n", pri_file);
-        return -1;
-    }
-    if (fread(&sk, sizeof(rsa_sk), 1, fp) == NULL)
-    {
-        printf("Read file error! %s\n", pri_file);
-        return -1;
-    }
-    fclose(fp);
-
     //read ciphertext from file
     fp = fopen(c, "rb");
     if (fp == NULL)
@@ -88,14 +78,8 @@ int main(int argc, char *argv[])
         printf("Cannot open file %s\n", c);
         return 0;
     }
-    if (fread(cipher, sizeof(cipher), 1, fp) == NULL)
-    {
-        printf("Read file error! %s\n", c);
-        return -1;
-    }
+    fread(cipher, sizeof(cipher), 1, fp);
     fclose(fp);
-    // BN_print_hex(cipher, sizeof(cipher));
-    // string_to_hex(msg, message);
 
     printf("Verify starts...\n");
     rsa_encrypt(plaintext, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, &pk);
@@ -105,7 +89,6 @@ int main(int argc, char *argv[])
     hex_to_string(plainmsg, plaintext);
     fp = fopen(p, "w");
     fwrite(plainmsg, 1, MAX_MODULUS_LENGTH * 2, fp);
-    // fputs(plainmsg, fp);
     fclose(fp);
 
     return 0;
