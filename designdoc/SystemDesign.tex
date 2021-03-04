@@ -133,7 +133,8 @@ This following summarizes the communication channels in the system.
 	
 	\item A SED CPU can send out a broadcast message to all other registered SED CPUs. This message will go through the SED controller. This message must be encrypted and authenticated as well. Only registered SED controller should be able to decrypt this message, and any tampering to the message by an attacker should be detected. 
 	
-	\item In registration and deregistration, a SED only talks with SSS in a wired and secured channel. No further protection is needed for this channel.
+	\item In registration and deregistration, a SED only talks with SSS in a wired and secured channel. No further protection is needed for this channel. 
+	But sss needs to confirm only the provisoned SED can be registered.
 	
 	\item SED CPU uses the FAA channel to talk with us, sending status notifications to us.
 \end{itemize}
@@ -169,9 +170,10 @@ The attackers can carry out the following attacks:
 \section{Our Design}
 % SSS stores all public keys ($pk_k$) of all provisioned SEDs. 
 Each SED controller $k$ has a public key pair ($pk_k, sk_k$).
-Each SED stores all other SEDs' $pk_k$.
-ENC and DEC stands for symmetric encryption and decryption with AES.
-AENC and ADEC stands for asymmetric encryption and decryption with RSA.
+Each SED stores all other provisoned SEDs' $pk_k$.
+ENC and DEC stands for symmetric encryption and decryption with AES256-GCM.
+AENC and ADEC stands for asymmetric encryption and decryption with RSA512.
+SIG and AUTH stands for the signature and verification with RSA512.
 
 \subsection{Targeted Transmission}
 Whenever the SED$_a$ sends a targeted message to SED$_b$, it first generates an AES key $k_a$ and IV $iv_a$. 
@@ -216,24 +218,27 @@ Below are the details Key generation for asymmetric encryption:
 \begin{itemize}
   % \item[Step1.]
   \item[Step 1.] When adding SED$_k$ ($k$ refers to \verb|SCEWL_ID|) to a deployment, SSS generates a pair of RSA keys ($pk_k$, $sk_k$) for SED$_k$.
-  
-  We develop \textbf{create\_secrets.py} (with \verb|SCEWL_ID| as a parameter) script to generate key pair ($pk_k$ and $sk_k$) for each provisioned SED$_k$ and run the script from  \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
   SSS stores the keys in files as $k.pub$, $k.pri$ at its local filesystem.
-
-  \item[Step 2.] When building controller for SED$_k$, the key pair ($pk_k$, $sk_k$) will be copied to this controller container.
   
-  At the time of building the controller of SED's \textbf{dockerfiles/2c\_build\_controller.Dockerfile}  gets invoked, we change this file to copy the secrets from the SSS container to the controller container.
+  We implement \textbf{keygen} (with \verb|SCEWL_ID| as a parameter) application to generate key pair ($pk_k$ and $sk_k$) for each provisioned SED$_k$ first, then invoke \textbf{create\_secrets.py} to output the \textbf{key.h} which will be used to compile the SED$_k$ controller.
 
-  \item[Step 3.] At registration stage, the SED$_k$ uses its own private key $sk_k$ to sign the registration message and send it to the SSS.
-  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the register operation).
+  This step runs the script from \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile} file.
+
+  \item[Step 2.] When building controller for SED$_k$, the key pair ($pk_k$, $sk_k$) will be copied from the sss container to this controller container.
+  
+  At the time of building the controller of SED's.
+  We change \textbf{dockerfiles/2c\_build\_controller.Dockerfile} to copy \textbf{key.h} from the SSS container to the controller container.
+
+  \item[Step 3.] At registration stage, the SED$_k$ uses its own private key $sk_k$ to sign the registration message (with padding to 512 bits) and send it to the SSS.
+  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{B}, \mathcal{H})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the register operation).
   If $k$ is in our provisoned SED list, SSS will use the associated public key $pk_k$ to verify this message, e.g. $\mathcal{H'}, \mathcal{B'}$ = VER$_{pk_k}$(SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$).
-  Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finish the registration for SED$_k$, adds $k$ to a dedicated list, and sends the public keys of all other SEDs to SED$_k$.
+  Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finish the registration for SED$_k$, adds $k$ to a dedicated list, and sends the public keys of all other provisoned SEDs to SED$_k$.
   
-  We modify the \textbf{sss.py} to verify the provioned SEDs and send out the public keys of other SED when registration.
+  We implement \textbf{auth} application to verify the signed message, modify the \textbf{sss.py} to verify the provioned SEDs and send out the public keys of other provisoned SEDs.
 
   \item[Step 4.] The deregistration stage is similar to registration.
   SED$_k$ will delete other public keys first, then uses its own private key $sk_k$ to sign the deregistration message and send it to the SSS.
-  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the deregister operation).
+  It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{B}, \mathcal{H})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the deregister operation).
   If $k$ is in our provisoned SED list and in our dedicated list, SSS will use the associated public key $pk_k$ to verify this message.
   Upon a successful verification, SSS will remove SED$_k$ from the dedicated list.
 
@@ -313,18 +318,42 @@ Row $a$ here signifies the sequence number for communication between the SED pai
 \subsection{Build Process}
 
   \begin{itemize}
-    \item \textbf{dockerfiles/1a\_create\_sss.Dockerfile}: Generate or destory keys for SEDs registration and deregistration.
-    \item \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile}: Store the key list for actived SEDs.
-    \item \textbf{dockerfiles/2c\_build\_controller.Dockerfile}: Generate any other secrets.
-    \item ...
+    \item \textbf{dockerfiles/1a\_create\_sss.Dockerfile}
+    \begin{enumerate}
+      \item Copy \textbf{rsa} folder to sss container.
+      \item Copy \textbf{create\_secret.py} folder to sss container.
+      \item Copy \textbf{sss.py} folder to sss container.
+      \item Create a file (\textbf{provisoned\_list}) to store the provisoned SEDs
+    \end{enumerate}
+    \item \textbf{dockerfiles/2b\_create\_sed\_secrets.Dockerfile}
+    \begin{enumerate}
+      \item Create a folder in sss container to store the provisioned SEDs secrets (key pairs).
+      \item Write provisoned SCEWL\_ID to the \textbf{provisoned\_list}.
+      \item \textbf{keygen} is invoked to generate the key pair.
+      \item \textbf{create\_secret.py} is invoked to generate the \$\{SCEWL\_ID\}\_publickKey.
+    \end{enumerate}
+    \item \textbf{dockerfiles/2c\_build\_controller.Dockerfile}
+    \begin{enumerate}
+      \item Copy the \textbf{\$\{SCEWL\_ID\}\_publickKey} to controller container.
+    \end{enumerate}
   \end{itemize}
 
 \section{Implementation}
 \subsection{Critical Functions and Files}
 \begin{itemize}
-  \item sss.py: check the provisoned SEDs.
-  \item controller.c: add message encryption, decryption, and authentication, update keys.
-  \item others are still in progress.
+  \item \textbf{aes-gcm crypto lib}: message encryption and decryption (controller).
+  \item \textbf{rsa}
+  \begin{enumerate}
+    \item \textbf{keygen}: key pairs generation (sss).
+    \item \textbf{auth}: registration message authentication (sss).
+    \item \textbf{crypto lib}: aes\_key encryption and decryption, message signature and authentication (controller).
+  \end{enumerate}
+  \item \textbf{create\_secret.py}: key file generation and deletion.
+  \item \textbf{provisoned\_list}: store the provisoned SCEWL ids.
+  \item \textbf{sss.py}: check the provisoned SEDs.
+  \item \textbf{controller.c}: add message encryption, decryption, and authentication, update keys.
+  \item \textbf{controller.h}: critical structures and macros.
+  \item others key files.
 \end{itemize}
 
 
