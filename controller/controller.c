@@ -109,25 +109,25 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
   // memset(enc_aes_key, 0, keyLen);
 
 #ifdef DEBUG_KEY_CRYPTO
-  send_str("Decryption starts...\n");
-  send_str("sk->d1...\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
-  rsa_decrypt(decipher, MAX_MODULUS_LENGTH, scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
-  hex_to_string(plaintext, decipher);
-  send_str("Decryption done...\n\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+  // send_str("Decryption starts...\n");
+  // send_str("sk->d1...\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
+  // rsa_decrypt(decipher, MAX_MODULUS_LENGTH, scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
+  // hex_to_string(plaintext, decipher);
+  // send_str("Decryption done...\n\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
 
-  send_str("Plaintext...\n\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
+  // send_str("Plaintext...\n\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
 
-  if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
-  {
-    send_str("\nAfter decryption, plaintext equal to message.\n");
-  }
-  else
-  {
-    send_str("\nAfter decryption, wrong answer.\n");
-  }
+  // if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
+  // {
+  //   send_str("\nAfter decryption, plaintext equal to message.\n");
+  // }
+  // else
+  // {
+  //   send_str("\nAfter decryption, wrong answer.\n");
+  // }
 #endif
 
   return 0;
@@ -164,7 +164,7 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg)
 #endif
     rsa_decrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
 #ifdef DEBUG_KEY_CRYPTO
-    send_str("decipher...\n");
+    send_str("aes_key after decryption...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
 #endif
 
@@ -293,10 +293,6 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
 #ifdef KEY_CRYPTO
   key_enc(src_id, tgt_id, &scewl_msg);
-#ifdef DEBUG_KEY_CRYPTO
-  send_str("encrypted key...\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)scewl_msg.aes_key);
-#endif
 #endif
 
 #ifdef KEY_CRYPTO
@@ -362,10 +358,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 // decrypt the aes_key
 #ifdef KEY_CRYPTO
   key_dec(src_id, tgt_id, scewl_msg);
-#ifdef DEBUG_KEY_CRYPTO
-  send_str("decrypted key...\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)scewl_msg->aes_key);
-#endif
 #endif
 
   // initialize context
@@ -463,59 +455,63 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
   DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
   DTYPE msg[MAX_MODULUS_LENGTH] = {0};
+  char plainmsg[MAX_MODULUS_LENGTH * 2 + 1] = {0};
 
   // pack header
   hdr.magicS = 'S';
   hdr.magicC = 'C';
   hdr.src_id = src_id;
   hdr.tgt_id = tgt_id;
-  hdr.len = len;
+  hdr.len = RSA_BLOCK;
 
   // pack the sss_crypto_msg
-  memset(&sss_crypto_msg, 0, sizeof(sss_crypto_msg));
-  sss_crypto_msg.src_id = src_id;
-  sss_crypto_msg.tgt_id = tgt_id;
-  sss_crypto_msg.len = len;
+  memset(&sss_crypto_msg, 0, RSA_BLOCK);
   sss_crypto_msg.dev_id = SCEWL_ID;
   sss_crypto_msg.op = SCEWL_SSS_REG;
+  sss_crypto_msg.src_id = src_id;
+  sss_crypto_msg.tgt_id = tgt_id;
 
-  // memcpy(message, sizeof(message), &sss_crypto_msg);
+  memcpy(message, (char *)&sss_crypto_msg, RSA_BLOCK);
 
+  // configure the e
+  BN_init(pk->e, MAX_PRIME_LENGTH);
+  //e=2^16+1
+  pk->e[MAX_PRIME_LENGTH - 2] = 1;
+  pk->e[MAX_PRIME_LENGTH - 1] = 1;
+
+#ifdef DEBUG_REG_CRYPTO
   // send_str("sss_crypto_msg...\n");
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
-  // send_str("message...\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
-
-  // int i;
-  // int j = MAX_MODULUS_LENGTH - 1;
-  // for (i = 63 - 1; i >= 1; i -= 2)
-  // {
-  //   msg[j--] = (message[i - 1] << 8) | message[i];
-  // }
-  // if (i == 0)
-  // {
-  //   msg[j--] = message[i];
-  // }
-  // while (j >= 0)
-  // {
-  //   msg[j--] = 0;
-  // }
+  // send_str("sss data...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
+  send_str("message...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
+#endif
 
   send_str("sign sss_msg...\n");
-  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, (DTYPE *)&sss_crypto_msg, MAX_MODULUS_LENGTH, sk);
-  // key_enc(src_id, tgt_id, &sss_crypto_msg);
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
+  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, message, MAX_MODULUS_LENGTH, sk);
 
-  // key_dec(src_id, tgt_id, &sss_crypto_msg);
+#ifdef DEBUG_REG_CRYPTO
+  send_str("after signing...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
+#endif
+
   send_str("verif sss_msg...\n");
-  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)cipher, MAX_MODULUS_LENGTH, pk);
+  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, pk);
+
+#ifdef DEBUG_REG_CRYPTO
+  send_str("after verification...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
+#endif
+
+  memcpy((char *)&sss_crypto_msg, decipher, RSA_BLOCK);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // send body
-  intf_write(intf, data, len);
+  intf_write(intf, decipher, RSA_BLOCK);
+  // intf_write(intf, data, len);
 
   return SCEWL_OK;
 }

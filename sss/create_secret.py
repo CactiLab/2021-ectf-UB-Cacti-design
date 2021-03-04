@@ -22,9 +22,9 @@ def read_input():
 
 def del_input(scewl_id):
     #TODO: delete pub and private key files for scewl id (print bad if doesn't exist)
-    pub_path = "/" + str(scewl_id) + "/privateKey.txt"
-    pri_path = "/" + str(scewl_id) + "/publicKey.txt"
-    keyHeader_path = "/" + str(scewl_id) + "/key.h"
+    pub_path = "/secrets/" + str(scewl_id) + "/privateKey.txt"
+    pri_path = "/secrets/" + str(scewl_id) + "/publicKey.txt"
+    keyHeader_path = "/secrets/" + str(scewl_id) + "/key.h"
     
     if os.path.exists(pub_path) and os.path.exists(pri_path):
         os.remove(pub_path)
@@ -65,10 +65,10 @@ def write_into_header_file(struct_name, key_file_header, list_of_key_values, nam
     ''')
 
 def enc_input(scewl_id):
-    key_file_name = "/" + str(scewl_id) + "/key.h"
+    key_file_name = "/secrets/" + str(scewl_id) + "/key.h"
     
-    private_key_file_path = "/" + str(scewl_id) + "/privateKey.txt"
-    public_key_file_path = "/" + str(scewl_id) + "/publicKey.txt"
+    private_key_file_path = "/secrets/" + str(scewl_id) + "/privateKey.txt"
+    public_key_file_path = "/secrets/" + str(scewl_id) + "/publicKey.txt"
 
     key_file_header = open(key_file_name, "w")
     privateKey_file = open(private_key_file_path, 'r')

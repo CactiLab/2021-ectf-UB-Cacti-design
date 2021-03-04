@@ -38,10 +38,10 @@ ARG SCEWL_ID
 # generate any other secrets and build controller
 WORKDIR /sed
 
-# COPY --from=sss /${SCEWL_ID}/key.h /sed/key.h
+# COPY --from=sss /secrets/${SCEWL_ID}/key.h /sed/key.h
 
 # for testing, use the same key pairs
-COPY --from=sss /10/key.h /sed/key.h   
+COPY --from=sss /secrets/10/key.h /sed/key.h   
 
 
 RUN make SCEWL_ID=${SCEWL_ID}

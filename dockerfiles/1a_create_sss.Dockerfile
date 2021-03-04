@@ -19,8 +19,14 @@ RUN pip3 install rsa
 # add any deployment-wide secrets here
 RUN mkdir /secrets
 
+# add rsa c in secrets folder
+ADD rsa /secrets/rsa
+WORKDIR /secrets/rsa
+RUN make
+
 ##############################
-RUN touch provisoned_list
+RUN touch /secrets/provisoned_list
+ADD create_secret.py /secrets/create_secret
 
 # map in SSS
 # NOTE: only sss/ and its subdirectories in the repo are accessible to this Dockerfile as .
