@@ -454,78 +454,87 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   return SCEWL_OK;
 }
 
-int send_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
+int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
   scewl_hdr_t hdr;
-  int dec_len = len - sizeof(scewl_msg_hdr_t);
+  scewl_sss_crypto_msg_t sss_crypto_msg;
+
+  char message[MAX_MODULUS_LENGTH * 2] = {0};
+  DTYPE cipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
+  DTYPE msg[MAX_MODULUS_LENGTH] = {0};
 
   // pack header
   hdr.magicS = 'S';
   hdr.magicC = 'C';
   hdr.src_id = src_id;
   hdr.tgt_id = tgt_id;
-  hdr.len = dec_len - sizeof(scewl_crypto_msg_hdr_t);
+  hdr.len = len;
 
-  scewl_crypto_msg_t *crypto_msg = NULL;
-  scewl_msg_t *scewl_msg = NULL;
+  // pack the sss_crypto_msg
+  memset(&sss_crypto_msg, 0, sizeof(sss_crypto_msg));
+  sss_crypto_msg.src_id = src_id;
+  sss_crypto_msg.tgt_id = tgt_id;
+  sss_crypto_msg.len = len;
+  sss_crypto_msg.dev_id = SCEWL_ID;
+  sss_crypto_msg.op = SCEWL_SSS_REG;
 
-  uint8_t plaintext[dec_len];
-  uint8_t ciphertext[dec_len];
+  memcpy(message, sizeof(message), &sss_crypto_msg);
 
-  memset(ciphertext, 0, dec_len);
-  memset(plaintext, 0, dec_len);
+  send_str("before sss_msg...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
 
-  scewl_msg = (scewl_msg_t *)data;
+  // int i;
+  // int j = MAX_MODULUS_LENGTH - 1;
+  // for (i = 63 - 1; i >= 1; i -= 2)
+  // {
+  //   msg[j--] = (message[i - 1] << 8) | message[i];
+  // }
+  // if (i == 0)
+  // {
+  //   msg[j--] = message[i];
+  // }
+  // while (j >= 0)
+  // {
+  //   msg[j--] = 0;
+  // }
 
-// decrypt the aes_key
-#ifdef KEY_CRYPTO
-  key_dec(src_id, tgt_id, scewl_msg);
-#endif
+  send_str("sign sss_msg...\n");
+  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, (DTYPE *)&sss_crypto_msg, MAX_MODULUS_LENGTH, sk);
+  // key_enc(src_id, tgt_id, &sss_crypto_msg);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)cipher);
 
-  // initialize context
-  gcm_initialize();
-
-  int ret = 0;
-  ret = aes_gcm_decrypt_auth(plaintext, (const uint8_t *)scewl_msg->crypto_msg, dec_len, scewl_msg->aes_key, keyLen, scewl_msg->iv, ivLen, scewl_msg->tag, tagLen);
-
-  if (ret == 0)
-  {
-    send_str("Checkging the header...\n");
-    crypto_msg = (scewl_crypto_msg_t *)plaintext;
-
-    if ((crypto_msg->src_id == src_id) && (crypto_msg->tgt_id == tgt_id) && (crypto_msg->len == len))
-    {
-      send_str("Authentication Success!\n");
-    }
-    else
-    {
-      send_str("Authentication Failure!");
-      return (-1);
-    }
-  }
-  else
-  {
-    send_str("Authentication Failure!");
-    return (-1);
-  }
-
-  if (check_sequence_number(hdr.src_id, crypto_msg->sq))
-  {
-    send_str("Sequence numebr validation success");
-  }
-  else
-  {
-    send_str("Replay attack detected");
-    return (-1);
-  }
-
-  // fill the structure
+  // key_dec(src_id, tgt_id, &sss_crypto_msg);
+  send_str("verif sss_msg...\n");
+  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)cipher, MAX_MODULUS_LENGTH, pk);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // send body
-  intf_write(intf, crypto_msg->body, hdr.len);
+  intf_write(intf, data, len);
+
+  return SCEWL_OK;
+}
+
+int send_auth_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
+{
+  scewl_hdr_t hdr;
+
+  // pack header
+  hdr.magicS = 'S';
+  hdr.magicC = 'C';
+  hdr.src_id = src_id;
+  hdr.tgt_id = tgt_id;
+  hdr.len = len;
+
+  // send header
+  intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
+
+  // send body
+  intf_write(intf, data, len);
 
   return SCEWL_OK;
 }
@@ -595,26 +604,6 @@ int read_msg(intf_t *intf, char *data, scewl_id_t *src_id, scewl_id_t *tgt_id,
 
   return max;
 }
-
-// int send_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
-// {
-//   scewl_hdr_t hdr;
-
-//   // pack header
-//   hdr.magicS = 'S';
-//   hdr.magicC = 'C';
-//   hdr.src_id = src_id;
-//   hdr.tgt_id = tgt_id;
-//   hdr.len = len;
-
-//   // send header
-//   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
-
-//   // send body
-//   intf_write(intf, data, len);
-
-//   return SCEWL_OK;
-// }
 
 int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
@@ -710,7 +699,7 @@ int sss_register()
 
 // send registration
 #ifdef REG_CRYPTO
-  status = send_enc_reg_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
+  status = send_sign_reg_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #else
   status = send_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #endif

@@ -25,9 +25,9 @@ ADD rsa /rsa
 RUN mkdir /${SCEWL_ID}
 WORKDIR /rsa
 RUN make
-RUN ./rsa_key_gen
+RUN ./keygen
 RUN mv privateKey.txt publicKey.txt /${SCEWL_ID}
-RUN cp /${SCEWL_ID}/publicKey /${SCEWL_ID}_publicKey
+RUN cp publicKey /${SCEWL_ID}_publicKey
 RUN make clean
 
 ##############################
