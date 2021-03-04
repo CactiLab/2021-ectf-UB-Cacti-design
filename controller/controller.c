@@ -710,7 +710,7 @@ int sss_register()
 
 // send registration
 #ifdef REG_CRYPTO
-  status = send_enc_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
+  status = send_enc_reg_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #else
   status = send_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #endif
@@ -724,7 +724,7 @@ int sss_register()
 
 // notify CPU of response
 #ifdef REG_CRYPTO
-  status = send_reg_msg(CPU_INTF, src_id, tgt_id, len, (char *)&msg);
+  status = send_auth_reg_msg(CPU_INTF, src_id, tgt_id, len, (char *)&msg);
 #else
   status = send_msg(CPU_INTF, src_id, tgt_id, len, (char *)&msg);
 #endif

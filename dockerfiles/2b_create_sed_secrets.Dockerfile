@@ -25,13 +25,15 @@ ADD rsa /rsa
 RUN mkdir /${SCEWL_ID}
 WORKDIR /rsa
 RUN make
-RUN ./rsatest
+RUN ./rsa_key_gen
 RUN mv privateKey.txt publicKey.txt /${SCEWL_ID}
+RUN cp /${SCEWL_ID}/publicKey /${SCEWL_ID}_publicKey
 RUN make clean
 
 ##############################
 # Read key files from the sss/$SCEWL_ID/ to generate the key.h file
 ADD create_secret.py create_secret
 RUN python3 create_secret ${SCEWL_ID} generate_key
+
 
 ##############################

@@ -102,10 +102,14 @@ controller/RSA-module/plaintext.txt
 controller/RSA-module/privateKey.txt
 controller/RSA-module/publicKey.txt
 
-sss/RSA-module/ciphertext.txt
-sss/RSA-module/plaintext.txt
-sss/RSA-module/privateKey.txt
-sss/RSA-module/publicKey.txt
+sss/rsa/ciphertext.txt
+sss/rsa/plaintext.txt
+sss/rsa/privateKey.txt
+sss/rsa/privateKey
+sss/rsa/10_privateKey
+sss/rsa/publicKey.txt
+sss/rsa/publicKey
+sss/rsa/10_publicKey
 
 *.pri
 *.pub

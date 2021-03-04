@@ -9,9 +9,10 @@ CFLAGS = -O2 -Wall
 # set compile list
 OUTPUT1 = auth
 OUTPUT2 = keygen
+OUTPUT3 = test
 
 # all in one list
-OUTPUTLIST = $(OUTPUT1) $(OUTPUT2)
+OUTPUTLIST = $(OUTPUT1) $(OUTPUT2) $(OUTPUT3)
 
 all : $(OUTPUTLIST)
 
@@ -22,9 +23,13 @@ $(OUTPUT1) : $(OBJS)
 $(OUTPUT2) : $(OBJS)
 	@$(CC) $^ -o $@ -D_$(shell echo $(@)|tr a-z A-Z)_
 
+$(OUTPUT3) : $(OBJS)
+	@$(CC) $^ -o $@ -D_$(shell echo $(@)|tr a-z A-Z)_
+
 %.o : %.c
 	@$(CC) -c $< $(CCFLAGS) $(IPATH)
 
 clean:
-	@rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt publicKey privateKey
+	# @rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt publicKey privateKey
+	@rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt
 .PHONY:clean
