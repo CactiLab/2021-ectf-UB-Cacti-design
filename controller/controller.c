@@ -479,11 +479,12 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   sss_crypto_msg.dev_id = SCEWL_ID;
   sss_crypto_msg.op = SCEWL_SSS_REG;
 
-  memcpy(message, sizeof(message), &sss_crypto_msg);
+  // memcpy(message, sizeof(message), &sss_crypto_msg);
 
-  send_str("before sss_msg...\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
+  // send_str("sss_crypto_msg...\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
+  // send_str("message...\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)message);
 
   // int i;
   // int j = MAX_MODULUS_LENGTH - 1;
