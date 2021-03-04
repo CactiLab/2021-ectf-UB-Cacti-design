@@ -22,6 +22,7 @@ IPATH+=${ROOT}/CMSIS/Include
 IPATH+=${VPATH}
 
 # add flags to pass to the compiler
+CFLAGS+=-w
 CFLAGS+=-DSCEWL_ID=${SCEWL_ID}
 
 # this rule must come first in `all`
