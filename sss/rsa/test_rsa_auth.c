@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
     char plainmsg[MAX_MODULUS_LENGTH * 2 + 1];
 
     char *m = "message.txt";
-    char *c = "aes_key.txt";
-    char *p = "auth_aes_key.txt";
+    char *c = "aes_key";
+    char *p = "auth_aes_key";
     char pub_file[100] = {0};
     char pri_file[100] = {0};
     // 10_publicKey.txt

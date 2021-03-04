@@ -22,8 +22,8 @@ int main(int argc, char *argv[])
     char plainmsg[MAX_MODULUS_LENGTH * 2 + 1];
 
     char *m = "message.txt";
-    char *c = "aes_key.txt";
-    char *p = "auth_aes_key.txt";
+    char *c = "aes_key";
+    char *p = "auth_aes_key";
     char pub_file[100] = {0};
     char pri_file[100] = {0};
 
@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
     // sprintf(pub_file, "publicKey");
     // sprintf(pri_file, "privateKey");
 
-    printf("%s\n", pub_file);
-    printf("%s\n", pri_file);
+    // printf("%s\n", pub_file);
+    // printf("%s\n", pri_file);
 
     FILE *fp;
 
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         return -1;
     }
     fclose(fp);
-    BN_print_hex(cipher, sizeof(cipher));
+    // BN_print_hex(cipher, sizeof(cipher));
     // string_to_hex(msg, message);
 
     printf("Verify starts...\n");
