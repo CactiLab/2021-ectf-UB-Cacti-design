@@ -30,6 +30,6 @@ $(OUTPUT3) : $(OBJS)
 	@$(CC) -c $< $(CCFLAGS) $(IPATH)
 
 clean:
-	# @rm $(OUTPUTLIST) plaintext.txt ciphertext.txt publicKey.txt privateKey.txt publicKey privateKey
-	@rm $(OUTPUTLIST)
+	@rm $(OUTPUTLIST) publicKey.txt privateKey.txt publicKey
+	# @rm $(OUTPUTLIST)
 .PHONY:clean
