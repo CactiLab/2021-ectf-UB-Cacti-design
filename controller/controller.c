@@ -504,14 +504,22 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
 #endif
 
-  memcpy((char *)&sss_crypto_msg, decipher, RSA_BLOCK);
+#ifdef SEND_SIGN_REG
+  memcpy((char *)&sss_crypto_msg, cipher, RSA_BLOCK);
+#endif
+
+  send_str("sneding sss_crypto_msg...\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
-  // send body
-  intf_write(intf, decipher, RSA_BLOCK);
-  // intf_write(intf, data, len);
+// send body
+#ifdef REG_CRYPTO
+  intf_write(intf, (char *)&sss_crypto_msg, RSA_BLOCK);
+#else
+  intf_write(intf, data, len);
+#endif
 
   return SCEWL_OK;
 }
