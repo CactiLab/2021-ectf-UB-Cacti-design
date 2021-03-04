@@ -56,18 +56,71 @@ class SSS:
 
     def handle_transaction(self, csock: socket.SocketType):
         logging.debug('handling transaction')
+        provisioned_flag = False
+        legit_SED_flag = False
         data = b''
-        while len(data) < 12:
-            recvd = csock.recv(12 - len(data))
+        while len(data) < 72:
+            recvd = csock.recv(72 - len(data))
             data += recvd
 
             # check for closed connection
             if not recvd:
                 raise ConnectionResetError
-        logging.debug(f'Received buffer: {repr(data)}')
-        _, _, _, _, dev_id, op = struct.unpack('<HHHHHH', data)
 
+        logging.info(f'Received buffer: {repr(data)}')
+        logging.info(f'Lenght of data: {len(data)}')
+        _, target_id, src_id, _ = struct.unpack('<HHHH', data[:8])
+        logging.info(f'header target: {target_id} header src: {src_id}')
+        
+        data = data[8:]
+        logging.info(f'Received buffer: {repr(data)}')
+        logging.info(f'Lenght of data: {len(data)}')
+        logging.info(f'Lenght of data: {type(data)}')
+        #op = 0 #remove
+        cipher_file = open("rsa/cipher", "wb")
+        #cipher_file = open("cipher", "wb")
+        cipher_file.write(data)
+        cipher_file.close()
+        cipher_file = open("rsa/cipher", "rb").read()
+        logging.info(f'written data : {repr(cipher_file)}')
+        #cipher_file.close()
+        #logging.info(f'source: {src_id}')
+        auth_app_command = "./rsa/auth " + str(src_id)
+
+        #logging.info(f'Calling auth application')
+        logging.info(f'auth command: {auth_app_command}')
+        if not os.system(auth_app_command):
+                logging.info(f'command successfully executed')
+
+        #decipher_data = open("rsa/decipher", "rb").read()
+        with open("rsa/decipher", mode='rb') as file:
+            decipher_data = file.read()
+        d_data = struct.unpack('<32H', decipher_data)
+
+        logging.info(f'Received buffer length: {len(decipher_data)}')
+        logging.info(f'Received buffer: {repr(decipher_data)}')
+
+        os.remove("rsa/decipher")
+        os.remove("rsa/cipher")
+
+        d_dev_id = d_data[0]
+        d_op = d_data[1]
+        d_target_id = d_data[2]
+        d_src_id = d_data[3]
+        op = d_op
+
+        if d_target_id == target_id and d_src_id == src_id:
+            logging.info(f'LeGIT SED {d_dev_id}')
+            legit_SED_flag = True
+            dev_id = d_dev_id
+        else:
+            logging.info(f'In valid Reigstration for SED')
+            dev_id = target_id
+
+        logging.info(f'dev ID:{d_dev_id} op: {d_op} target: {d_target_id} src: {d_src_id}')
+        
         if dev_id in provisionedList:
+            provisioned_flag = True
             logging.info(f'ID: {dev_id} beloings to provisioned list')
         
         # requesting repeat transaction
@@ -79,11 +132,14 @@ class SSS:
             self.devs[dev_id] = Device(dev_id, op, csock)
             resp_op = op
             logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
-
-        # send response
-        resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
-        logging.debug(f'Sending response {repr(data)}')
-        csock.send(resp)
+        logging.info(f'-----------DONE for {dev_id}------')
+        logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
+        
+        if (provisioned_flag and legit_SED_flag) :
+            # send response
+            resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
+            logging.debug(f'Sending response {repr(data)}')
+            csock.send(resp)
 
     def start(self):
         unattributed_socks = set()

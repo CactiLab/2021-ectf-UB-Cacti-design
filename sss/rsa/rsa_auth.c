@@ -30,8 +30,8 @@ int main(int argc, char *argv[])
     char plainmsg[MAX_MODULUS_LENGTH * 2 + 1];
 
     char *m = "message.txt";
-    char *c = "cipher";
-    char *p = "decipher";
+    char *c = "rsa/cipher";
+    char *p = "rsa/decipher";
     char pub_file[100] = {0};
     char pri_file[100] = {0};
 
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    sprintf(pub_file, "%s_publicKey", argv[1]);
+    sprintf(pub_file, "rsa/%s_publicKey", argv[1]);
     sprintf(pri_file, "%s_privateKey", argv[1]);
 
     // sprintf(pub_file, "publicKey");
