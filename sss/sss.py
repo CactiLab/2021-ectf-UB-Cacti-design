@@ -30,7 +30,7 @@ dedicatedList = []
 # mirroring scewl enum at scewl.c:4
 ALREADY, REG, DEREG = -1, 0, 1
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename= 'sss.log', filemode='w', level=logging.INFO)
 
 Device = NamedTuple('Device', [('id', int), ('status', int), ('csock', socket.socket)])
 
@@ -67,6 +67,9 @@ class SSS:
         logging.debug(f'Received buffer: {repr(data)}')
         _, _, _, _, dev_id, op = struct.unpack('<HHHHHH', data)
 
+        if dev_id in provisionedList:
+            logging.info(f'ID: {dev_id} beloings to provisioned list')
+        
         # requesting repeat transaction
         if dev_id in self.devs and self.devs[dev_id] == op:
             resp_op = ALREADY
@@ -84,7 +87,7 @@ class SSS:
 
     def start(self):
         unattributed_socks = set()
-
+        preapred_provisioned_list()
         # serve forever
         while True:
             # check for new client
@@ -184,6 +187,16 @@ def createTmpMsg(deviceID):
     print("signedMsg" + str(signedMsg) + "\r\n")
 
     return signedMsg
+
+
+def preapred_provisioned_list():
+        provisionedFile = open("../provisoned_list", "r")
+        provisionedSEDLines = provisionedFile.readlines()
+        for line in provisionedSEDLines:
+            line.replace("\n","")
+            provisionedList.append(int(line))
+        logging.info(f'Provisioned SEDS: {provisionedList}')
+        provisionedFile.close()
 
 def registration_tmp(signedMsg):   
 
@@ -324,7 +337,6 @@ def main():
 
 
     args = parse_args()
-
     # map of SCEWL IDs to statuses
     sss = SSS(args.sockf)
     sss.start()

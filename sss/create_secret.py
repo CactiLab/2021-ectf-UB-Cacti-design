@@ -102,6 +102,10 @@ def enc_input(scewl_id):
     key_file_header.write(f'''
 #endif    
     ''')
+    key_file_header.close()
+    privateKey_file.close()
+    publicKey_file.close()
+
 if __name__ == '__main__':
     #read input from command line
     read_input()
