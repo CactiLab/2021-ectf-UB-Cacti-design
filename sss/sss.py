@@ -147,8 +147,12 @@ class SSS:
             logging.info(f'-----------DONE for {dev_id}------')
             logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
 
-            resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op, already_registered_sed)
-            resp = prepare_response(resp, registered_sed_list)
+            other_sed_pub = prepare_response(registered_sed_list)
+            logging.info(f'Public key : {other_sed_pub}')
+            logging.info(f'Public key length : {len(other_sed_pub)}')
+            message_length = len(other_sed_pub) + 5
+            resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
+            resp = resp + other_sed_pub
             logging.info(f'Response : {resp}')
             # send response
             logging.debug(f'Sending response {repr(data)}')
@@ -379,8 +383,8 @@ def get_publicKey(registed_SED_id):
 
     return pub_key_file_data
 
-def prepare_response(resp, registered_sed_list):
-    
+def prepare_response(registered_sed_list):
+    resp = b''
     for registered_sed_id in registered_sed_list:
                 resp = resp + struct.pack('<H', registered_sed_id)
                 publicKey_data = get_publicKey(registered_sed_id)
