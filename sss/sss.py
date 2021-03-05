@@ -23,7 +23,7 @@ SSS_ID = 1
 
 ### registration_tmp and deregistration_tmp test
 import rsa
-provisionedList = [0,2]
+provisionedList = []
 dedicatedList = []
 ### registration_tmp and deregistration_tmp test
 
@@ -59,6 +59,8 @@ class SSS:
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
+        already_registered_sed = 0
+        
         while len(data) < 72:
             recvd = csock.recv(72 - len(data))
             data += recvd
@@ -123,21 +125,32 @@ class SSS:
             provisioned_flag = True
             logging.info(f'ID: {dev_id} beloings to provisioned list')
         
-        # requesting repeat transaction
-        if dev_id in self.devs and self.devs[dev_id] == op:
-            resp_op = ALREADY
-            logging.info(f'{dev_id}:already {"Registered" if op == REG else "Deregistered"}')
-        # record transaction
-        else:
-            self.devs[dev_id] = Device(dev_id, op, csock)
-            resp_op = op
-            logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
-        logging.info(f'-----------DONE for {dev_id}------')
-        logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
         
         if (provisioned_flag and legit_SED_flag) :
+            logging.info(f'self.dev IDs{type(self.devs)}')
+            logging.info(f'self.dev IDs{type(self.devs)}')
+            
+            registered_sed_list = list(self.devs.keys())
+            logging.info(f'List IDs{registered_sed_list}')
+            logging.info(f' TYpe IDs{type(registered_sed_list)}')
+            already_registered_sed = len(registered_sed_list)
+            # requesting repeat transaction
+
+            if dev_id in self.devs and self.devs[dev_id] == op:
+                resp_op = ALREADY
+                logging.info(f'{dev_id}:already {"Registered" if op == REG else "Deregistered"}')
+            # record transaction
+            else:
+                self.devs[dev_id] = Device(dev_id, op, csock)
+                resp_op = op
+                logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
+            logging.info(f'-----------DONE for {dev_id}------')
+            logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
+
+            resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op, already_registered_sed)
+            resp = prepare_response(resp, registered_sed_list)
+            logging.info(f'Response : {resp}')
             # send response
-            resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
             logging.debug(f'Sending response {repr(data)}')
             csock.send(resp)
 
@@ -356,6 +369,25 @@ def deregistration_tmp(signedMsg):
         except:
             return False
     return 
+
+def get_publicKey(registed_SED_id):
+    public_key_file_path = "rsa/" + str(registed_SED_id) + "_publicKey"
+    logging.info(f'public_key_file_path {public_key_file_path}')
+
+    pub_key_file_data = open(public_key_file_path,"rb").read()
+    logging.info(f'public key for {registed_SED_id} is {repr(pub_key_file_data)}')
+
+    return pub_key_file_data
+
+def prepare_response(resp, registered_sed_list):
+    
+    for registered_sed_id in registered_sed_list:
+                resp = resp + struct.pack('<H', registered_sed_id)
+                publicKey_data = get_publicKey(registered_sed_id)
+                resp = resp + publicKey_data
+                logging.info(f'len: {len(publicKey_data)}')
+    return resp
+
 
 def sendAllPubKeys():
     for deviceID_i in provisionedList:
