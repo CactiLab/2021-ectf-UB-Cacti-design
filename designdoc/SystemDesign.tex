@@ -170,13 +170,18 @@ The attackers can carry out the following attacks:
 \section{Our Design}
 % SSS stores all public keys ($pk_k$) of all provisioned SEDs. 
 Each SED controller $k$ has a public key pair ($pk_k, sk_k$).
-Each SED stores all other provisoned SEDs' $pk_k$.
+Each SED stores some of the other provisoned SEDs' $pk_k$.
 ENC and DEC stands for symmetric encryption and decryption with AES256-GCM.
 AENC and ADEC stands for asymmetric encryption and decryption with RSA512.
 SIG and AUTH stands for the signature and verification with RSA512.
 
 \subsection{Targeted Transmission}
-Whenever the SED$_a$ sends a targeted message to SED$_b$, it first generates an AES key $k_a$ and IV $iv_a$. 
+Whenever the SED$_a$ sends a targeted message to SED$_b$, it checks if it has SED$_b$'s public key $pk_b$. If yes, go to Case 2. Otherwise, go to Case 1.
+
+Case 1: SED$_a$ sends a special targeted message to SED$_b$ to ask for its public key.
+As a return, SED$_b$ sends its public key to SED$_a$. Then, SED$_a$ go to Case 2.
+
+Case 2: Whenever the SED$_a$ sends a targeted message to SED$_b$, it first generates an AES key $k_a$ and IV $iv_a$. 
 Then, it uses AES-GCM to encrypt and authenticate the SCEWL header ($\mathcal{H}$) and body ($\mathcal{B}$), which outputs the ciphertext ($\mathcal{C}$) and tag ($\mathcal{T}$), e.g. $\mathcal{C}, \mathcal{T}$ = ENC$_{k_a, iv_a}(\mathcal{H} || \mathcal{B})$.
 Then, it encrypts $k_a$ with $pk_b$, e.g. $\mathcal{E}=$AENC$_{pk_b}(k_a)$.
 Then, it sends out $\mathcal{M}$ = $\mathcal{H} || \mathcal{E}||iv_a||\mathcal{T}||\mathcal{C}$ (Figure \ref{fig:msg}).
@@ -214,7 +219,7 @@ Otherwise, $\mathcal{C'}$ = $\mathcal{H}||\mathcal{B}$.
 
 \subsection{Key Generation and Storage}
 
-Below are the details Key generation for asymmetric encryption:
+Below are the details key generation for asymmetric encryption:
 \begin{itemize}
   % \item[Step1.]
   \item[Step 1.] When adding SED$_k$ ($k$ refers to \verb|SCEWL_ID|) to a deployment, SSS generates a pair of RSA keys ($pk_k$, $sk_k$) for SED$_k$.
@@ -232,7 +237,7 @@ Below are the details Key generation for asymmetric encryption:
   \item[Step 3.] At registration stage, the SED$_k$ uses its own private key $sk_k$ to sign the registration message (with padding to 512 bits) and send it to the SSS.
   It sends out $\mathcal{M}$ = $\mathcal{H} || $SIG$_{sk_k}(\mathcal{B}, \mathcal{H})$, $\mathcal{B}$ = $k$ $||$ $op$ ($op$ refers the register operation).
   If $k$ is in our provisoned SED list, SSS will use the associated public key $pk_k$ to verify this message, e.g. $\mathcal{H'}, \mathcal{B'}$ = VER$_{pk_k}$(SIG$_{sk_k}(\mathcal{H}, \mathcal{B})$).
-  Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finish the registration for SED$_k$, adds $k$ to a dedicated list, and sends the public keys of all other provisoned SEDs to SED$_k$.
+  Upon a successful verification ($\mathcal{H}$ == $\mathcal{H'}$), SSS finishes the registration for SED$_k$, adds $k$ to the registered list, and sends the public keys of all other registered (not provisioned) SEDs to SED$_k$.
   
   We implement \textbf{auth} application to verify the signed message, modify the \textbf{sss.py} to verify the provioned SEDs and send out the public keys of other provisoned SEDs.
 
