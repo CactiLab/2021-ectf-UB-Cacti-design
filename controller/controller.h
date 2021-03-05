@@ -53,8 +53,8 @@ typedef uint16_t scewl_id_t;
 /******************************** end example ********************************/
 
 /******************************** start sss signature ********************************/
-// #define REG_CRYPTO 1         // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-// #define SEND_SIGN_REG 1      // uncomment this line to send signed sss_msg
+#define REG_CRYPTO 1         // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
+#define SEND_SIGN_REG 1      // uncomment this line to send signed sss_msg
 // #define DEBUG_REG_CRYPTO 1
 /******************************** start sss signature ********************************/
 
