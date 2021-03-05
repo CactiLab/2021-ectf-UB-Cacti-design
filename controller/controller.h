@@ -45,6 +45,9 @@ typedef uint16_t scewl_id_t;
 #define msgHeader 60
 #define RSA_BLOCK 64
 
+#define currentPos 0
+#define totalSEDPos 4
+
 /******************************** start example ********************************/
 // #define EXAMPLE_AES_GCM 1
 // #define CRYPTO_TEST 1
@@ -56,6 +59,7 @@ typedef uint16_t scewl_id_t;
 #define REG_CRYPTO 1         // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
 #define SEND_SIGN_REG 1      // uncomment this line to send signed sss_msg
 // #define DEBUG_REG_CRYPTO 1
+// #define PK_TEST 1
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/
@@ -140,9 +144,20 @@ typedef struct scewl_sss_crypto_msg_t
 
 typedef struct scewl_pub_t
 {
+  uint8_t flag;
   scewl_id_t scewl_id;
-  rsa_pk *pk;
+  rsa_pk pk;
 } scewl_pub_t;
+
+typedef struct scewl_get_pk_hdr_t
+{
+  uint8_t magicP; // all messages must start with the magic code "PK"
+  // uint8_t magicU;
+  // uint8_t magicB; // all messages must start with the magic code "PUBK"
+  uint8_t magicK;
+  scewl_id_t tgt_id;
+  scewl_id_t src_id;
+} scewl_get_pk_hdr_t;
 
 // SCEWL status codes
 enum scewl_status
