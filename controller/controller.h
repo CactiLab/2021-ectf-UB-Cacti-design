@@ -60,6 +60,8 @@ typedef uint16_t scewl_id_t;
 #define SEND_SIGN_REG 1      // uncomment this line to send signed sss_msg
 // #define DEBUG_REG_CRYPTO 1
 // #define PK_TEST 1
+// #define DEBUG_PK_TEST 1
+#define DEBUG_BRDCST
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/
@@ -184,6 +186,20 @@ enum scewl_ids
   SCEWL_FAA_ID
 };
 
+enum rsa_mode
+{
+  RSA_AUTH,
+  RSA_SIGN,
+  RSA_ENC,
+  RSA_DEC
+};
+
+int check_scewl_pk(scewl_id_t tgt_id);
+int check_scewl_pk_msg(char *data);
+int send_brdcst_get_pk_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
+int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
+
 /*
  * send_enc_msg
  * 
@@ -196,7 +212,7 @@ enum scewl_ids
  *   len - the length of message
  *   data - pointer to the message
  */
-int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t mode);
 
 /*
  * send_auth_msg
@@ -210,7 +226,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
  *   len - the length of message
  *   data - pointer to the message
  */
-int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t mode);
 
 /*
  * read_msg
