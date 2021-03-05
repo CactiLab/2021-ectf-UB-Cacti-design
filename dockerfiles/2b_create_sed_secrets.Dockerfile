@@ -25,7 +25,8 @@ RUN echo ${SCEWL_ID} >> /provisoned_list
 WORKDIR /secrets/rsa
 RUN ./keygen
 RUN mv privateKey.txt publicKey.txt /secrets/${SCEWL_ID}
-RUN cp publicKey /secrets/rsa/${SCEWL_ID}_publicKey
+RUN mv publicKey /secrets/rsa/${SCEWL_ID}_publicKey
+RUN rm privateKey
 # RUN make clean
 
 ##############################

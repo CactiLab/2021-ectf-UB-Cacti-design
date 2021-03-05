@@ -511,7 +511,7 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   memcpy((char *)&sss_crypto_msg, cipher, RSA_BLOCK);
 #endif
 
-  send_str("sneding sss_crypto_msg...\n");
+  send_str("sending sss_crypto_msg...\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)&sss_crypto_msg);
 
   // send header
@@ -530,6 +530,7 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
 int send_auth_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
 {
   scewl_hdr_t hdr;
+  scewl_pub_t scewl_pub;
 
   // pack header
   hdr.magicS = 'S';
@@ -541,7 +542,7 @@ int send_auth_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   // scewl_pub_t *tmp = (scewl_pub_t *)&data;
   // scewl_id_t scewl_id = tmp->scewl_id;
   // memcpy((char *)&scew_pk[scewl_id], tmp->pk, sizeof(rsa_pk));
-  
+
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
@@ -1087,7 +1088,8 @@ int main()
       {
         // Read message from antenna
         len = read_msg(RAD_INTF, buf, &src_id, &tgt_id, sizeof(buf), 1);
-
+        send_str("receive sss msg...\n");
+        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)buf);
         if (src_id != SCEWL_ID)
         { // ignore our own outgoing messages
           if (tgt_id == SCEWL_BRDCST_ID)

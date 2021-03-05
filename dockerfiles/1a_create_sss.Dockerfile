@@ -23,6 +23,10 @@ RUN mkdir /secrets
 ADD rsa /secrets/rsa
 WORKDIR /secrets/rsa
 RUN make
+RUN ./keygen
+RUN rm privateKey.txt publicKey.txt
+RUN mv publicKey /secrets/rsa/sss_publicKey
+RUN mv privateKey /secrets/rsa/sss_privateKey
 
 ##############################
 RUN touch /secrets/provisoned_list
