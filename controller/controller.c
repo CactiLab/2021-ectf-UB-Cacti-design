@@ -311,12 +311,15 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
 
 bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
 {
+  if (broad_cast_flag) {
+    source_SED = 0;
+  }
   if (messeage_sq.sq_receive[source_SED] < received_sq_number)
   {
     messeage_sq.sq_receive[source_SED] = received_sq_number;
     return true;
   }
-
+  broad_cast_flag = false;
   return false;
 }
 
@@ -373,7 +376,7 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 
 #ifdef SQ_DEBUG
   send_str("Sending sq:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg.sq);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq );
 #endif
 
 #ifdef DEBUG_MSG_CRYPTO
@@ -816,7 +819,7 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
     // handle_scewl_send(&own_pk, get_pk_hdr.src_id, sizeof(rsa_pk));
   }
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, "test");
-
+  broad_cast_flag = true;
   return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
@@ -945,6 +948,15 @@ int sss_register()
   return msg.op == SCEWL_SSS_REG;
 }
 
+// purpose is to let every one know about the de-registration
+
+void notify_deregistration() {
+  send_str("sending de-register message to every one");
+  char de_register_message[10] = {'D', 'E', 'R', 'E', 'G', 'I', 'S', 'T', 'E', 'R'};
+
+  handle_brdcst_send(de_register_message, 10);
+}
+
 int sss_deregister()
 {
   scewl_sss_msg_t msg;
@@ -975,6 +987,10 @@ int sss_deregister()
   {
     return 0;
   }
+
+  //broad cast deregistration message to every other SED currectly deployed
+
+  notify_deregistration();
 
   // op should be DEREG on success
   return msg.op == SCEWL_SSS_DEREG;
