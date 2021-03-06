@@ -60,7 +60,6 @@ typedef uint16_t scewl_id_t;
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
 #define SEND_SIGN_REG 1 // uncomment this line to send signed sss_msg
 // #define DEBUG_REG_CRYPTO 1
-// #define PK_TEST 1
 // #define DEBUG_PK_TEST 1
 // #define DEBUG_BRDCST
 /******************************** start sss signature ********************************/
@@ -160,8 +159,9 @@ typedef struct scewl_get_pk_hdr_t
   // uint8_t magicU;
   // uint8_t magicB; // all messages must start with the magic code "PUBK"
   uint8_t magicK;
-  scewl_id_t tgt_id;
   scewl_id_t src_id;
+  scewl_id_t tgt_id;
+  rsa_pk pk;
 } scewl_get_pk_hdr_t;
 
 // SCEWL status codes
@@ -194,7 +194,8 @@ enum rsa_mode
   RSA_AUTH,
   RSA_SIGN,
   RSA_ENC,
-  RSA_DEC
+  RSA_DEC,
+  RSA_BRDCST
 };
 
 int check_scewl_pk(scewl_id_t tgt_id);
