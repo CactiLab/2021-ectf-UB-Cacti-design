@@ -332,23 +332,21 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   int enc_len = len + sizeof(scewl_crypto_msg_hdr_t); // plaintext data len + 4 bytes sequence number
 
   int scewl_msg_body_len = sizeof(scewl_msg_hdr_t) + enc_len; // crypto message: msg header + 4 bytes sequence number + body (data)
-
-  scewl_crypto_msg_t crypto_msg;
-  scewl_msg_t scewl_msg;
-
+  
   uint8_t key[keyCryptoLen] = {0};
   uint8_t iv[ivLen] = {0};
+  uint8_t tag[tagLen] = {0};
   int i = 0;
 
-  // this is not secure, but if use SCEWL_MAX_DATA_SZ the system will crash
-  uint8_t ciphertext[enc_len];
+  scewl_msg_t scewl_msg;
+  uint8_t ciphertext[SCEWL_MAX_CRYPTO_DATA_SZ];
 
   // initialize the structures
   memset(key, 0, keyCryptoLen);
   memset(iv, 0, ivLen);
-  memset(ciphertext, 0, enc_len);
+  memset(ciphertext, 0, SCEWL_MAX_CRYPTO_DATA_SZ);
   memset(&scewl_msg, 0, sizeof(scewl_msg_t));
-  memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
+  // memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
 
   // setup random aes_key and iv
   srand(sysTimer);
@@ -363,11 +361,11 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   }
 
   // setup the crypto message structure
-  crypto_msg.tgt_id = tgt_id;
-  crypto_msg.src_id = src_id;
-  crypto_msg.len = scewl_msg_body_len;
-  crypto_msg.sq = ++messeage_sq.sq_send[tgt_id]; // setup the sequence number
-  memcpy(crypto_msg.body, data, len);            // setup the plaintext
+  scewl_msg.crypto_msg.tgt_id = tgt_id;
+  scewl_msg.crypto_msg.src_id = src_id;
+  scewl_msg.crypto_msg.len = scewl_msg_body_len;
+  scewl_msg.crypto_msg.sq = ++messeage_sq.sq_send[tgt_id]; // setup the sequence number
+  memcpy(scewl_msg.crypto_msg.body, data, len);            // setup the plaintext
 
   // setup the scewl message
   memcpy(scewl_msg.aes_key, key, keyCryptoLen);
@@ -381,30 +379,34 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 #ifdef DEBUG_MSG_CRYPTO
   send_str("------------------------------------------------------------------:\n");
   send_str("test enc message:\n");
-  // send_str("src_id:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.src_id);
-  // send_str("tgt_id:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.tgt_id);
-  // send_str("crypto len:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.len);
+  send_str("src_id:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.src_id);
+  send_str("tgt_id:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.tgt_id);
+  send_str("crypto len:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.len);
   send_str("plaintext:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)crypto_msg.body);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)&scewl_msg.crypto_msg.body);
+  send_str("crypto_msg body:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)&scewl_msg.crypto_msg);
   // send_str("crypto len:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 8, (char *)crypto_msg.len);
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 8, (char *)&scewl_msg.crypto_msg.len);
   // send_str("sq:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg.sq);
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq);
   send_str("key:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)scewl_msg.aes_key);
-  // send_str("iv:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)msg.iv);
+  send_str("iv:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)scewl_msg.iv);
 #endif
 
   // initialize context
   gcm_initialize();
 
   // encrypt buffer (encryption happens in place)
-  aes_gcm_encrypt_tag(ciphertext, (const uint8_t *)&crypto_msg, enc_len, scewl_msg.aes_key, keyLen, scewl_msg.iv, ivLen, scewl_msg.tag, tagLen);
-  memcpy(scewl_msg.crypto_msg, ciphertext, enc_len);
+  aes_gcm_encrypt_tag(ciphertext, (const uint8_t *)&scewl_msg.crypto_msg, enc_len, scewl_msg.aes_key, keyLen, scewl_msg.iv, ivLen, scewl_msg.tag, tagLen);
+  memcpy(&scewl_msg.crypto_msg, ciphertext, enc_len);
+  // memcpy(&scewl_msg->tag, tag, tagLen);
+  // memcpy(&scewl_msg->crypto_msg, ciphertext, enc_len);
 
 #ifdef KEY_CRYPTO
   key_enc(src_id, tgt_id, &scewl_msg, rsa_mode);
@@ -416,8 +418,8 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   send_str("tag:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)scewl_msg.tag);
   send_str("ciphertext:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)ciphertext);
-  memset(ciphertext, 0, 16);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)&scewl_msg.crypto_msg);
+  // memset(ciphertext, 0, 16);
 #endif
   memcpy(send_scewl_msg, &scewl_msg, sizeof(scewl_msg));
 
@@ -437,8 +439,8 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   hdr.tgt_id = tgt_id;
   hdr.len = sizeof(scewl_msg_hdr_t) + enc_len; // crypto message: msg header + 4 bytes sequence number + body (data)
 
-  scewl_msg_t scewl_msg;
-  memset(&scewl_msg, 0, sizeof(scewl_msg_t));
+  scewl_msg_t send_scewl_msg;
+  memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
 
   if (rsa_mode == RSA_ENC)
   {
@@ -446,20 +448,28 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
     {
       send_str("Send_enc_msg: getting target public key! ");
       idx = send_get_scewl_pk_msg(src_id, tgt_id);
-      send_str("Target public key set done...");
+      if (idx >= 0)
+      {
+        send_str("Target public key set done...");
+      }
+      else
+      {
+        send_str("Target public key set faluire...");
+        return SCEWL_ERR;
+      }
       // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(int), (char *)&idx);
       // [todo] key exchange
     }
   }
 
-  enc_msg(src_id, tgt_id, len, data, &scewl_msg, rsa_mode);
+  enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // send body
   // intf_write(intf, data, len);
-  intf_write(intf, (char *)&scewl_msg, hdr.len);
+  intf_write(intf, (char *)&send_scewl_msg, hdr.len);
 
   return SCEWL_OK;
 }
@@ -475,22 +485,22 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   scewl_msg_t *scewl_msg = NULL;
 
   // this is not secure, but use SCEWL_MAX_DATA_SZ, the system will crash
-  uint8_t plaintext[dec_len];
-  memset(plaintext, 0, dec_len);
+  uint8_t plaintext[SCEWL_MAX_CRYPTO_DATA_SZ];
+  memset(plaintext, 0, SCEWL_MAX_CRYPTO_DATA_SZ);
 
   scewl_msg = (scewl_msg_t *)data;
 
 #ifdef DEBUG_MSG_CRYPTO
   send_str("------------------------------------------------------------------:\n");
   send_str("test auth message:\n");
-  // send_str("key:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)scewl_msg->aes_key);
-  // send_str("iv:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)scewl_msg->iv);
-  // send_str("tag:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)scewl_msg->tag);
+  send_str("key:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, keyCryptoLen, (char *)scewl_msg->aes_key);
+  send_str("iv:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, ivLen, (char *)scewl_msg->iv);
+  send_str("tag:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)scewl_msg->tag);
   send_str("ciphertext:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)scewl_msg->crypto_msg);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, dec_len, (char *)&scewl_msg->crypto_msg);
 #endif
 
 // decrypt the aes_key
@@ -508,7 +518,7 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)scewl_msg->tag);
 #endif
   int ret = 0;
-  ret = aes_gcm_decrypt_auth(plaintext, (const uint8_t *)scewl_msg->crypto_msg, dec_len, scewl_msg->aes_key, keyLen, scewl_msg->iv, ivLen, scewl_msg->tag, tagLen);
+  ret = aes_gcm_decrypt_auth(plaintext, (const uint8_t *)&scewl_msg->crypto_msg, dec_len, scewl_msg->aes_key, keyLen, scewl_msg->iv, ivLen, scewl_msg->tag, tagLen);
 
   if (ret == 0)
   {
@@ -521,14 +531,14 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
     // send_str("Checkging the header...\n");
     crypto_msg = (scewl_crypto_msg_t *)plaintext;
 #ifdef DEBUG_MSG_CRYPTO
-    // send_str("src_id:\n");
-    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg->src_id);
-    // send_str("tgt_id:\n");
-    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg->tgt_id);
-    // send_str("crypto len:\n");
-    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg->len);
-    // send_str("sq:\n");
-    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg->sq);
+    send_str("src_id:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->src_id);
+    send_str("tgt_id:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->tgt_id);
+    send_str("crypto len:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->len);
+    send_str("sq:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->sq);
 #endif
     if ((crypto_msg->src_id == src_id) && (crypto_msg->tgt_id == tgt_id) && (crypto_msg->len == len))
     {

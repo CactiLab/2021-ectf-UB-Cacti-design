@@ -19,7 +19,8 @@
 //#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#define SCEWL_MAX_DATA_SZ 0x4000 + 60 //max data size + data verify header
+#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4000 + 80 //max data size + data verify header
+#define SCEWL_MAX_DATA_SZ 0x4000             //max data size
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 256
 // type of a SCEWL ID
@@ -56,8 +57,8 @@ typedef uint16_t scewl_id_t;
 /******************************** end example ********************************/
 
 /******************************** start sss signature ********************************/
-#define REG_CRYPTO 1         // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-#define SEND_SIGN_REG 1      // uncomment this line to send signed sss_msg
+#define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
+#define SEND_SIGN_REG 1 // uncomment this line to send signed sss_msg
 // #define DEBUG_REG_CRYPTO 1
 // #define PK_TEST 1
 // #define DEBUG_PK_TEST 1
@@ -95,14 +96,6 @@ typedef struct scewl_msg_hdr_t
   uint8_t tag[tagLen];
 } scewl_msg_hdr_t;
 
-typedef struct scewl_msg_t
-{
-  uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
-  uint8_t iv[ivLen];             //
-  uint8_t tag[tagLen];
-  uint8_t crypto_msg[SCEWL_MAX_DATA_SZ];
-} scewl_msg_t;
-
 typedef struct scewl_crypto_msg_hdr_t
 {
   scewl_id_t tgt_id;
@@ -119,6 +112,14 @@ typedef struct scewl_crypto_msg_t
   uint32_t sq;
   uint8_t body[SCEWL_MAX_DATA_SZ];
 } scewl_crypto_msg_t;
+
+typedef struct scewl_msg_t
+{
+  uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
+  uint8_t iv[ivLen];             //
+  uint8_t tag[tagLen];
+  scewl_crypto_msg_t crypto_msg;
+} scewl_msg_t;
 
 // sequence number for each SED
 typedef struct sequence_num_t
