@@ -61,7 +61,7 @@ typedef uint16_t scewl_id_t;
 // #define DEBUG_REG_CRYPTO 1
 // #define PK_TEST 1
 // #define DEBUG_PK_TEST 1
-#define DEBUG_BRDCST
+// #define DEBUG_BRDCST
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/

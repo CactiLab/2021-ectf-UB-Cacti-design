@@ -140,8 +140,6 @@ int send_get_scewl_pk_msg(scewl_id_t src_id, scewl_id_t tgt_id)
           }
           else
           {
-            // send_str("after sending get_scewl_pk...\n");
-            // send_enc_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_get_pk_hdr_t), &get_pk_hdr, RSA_SIGN);
 
             // send_str("recevie target public key...\n");
             // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)&msg);
@@ -157,38 +155,22 @@ int send_get_scewl_pk_msg(scewl_id_t src_id, scewl_id_t tgt_id)
                 scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
                 scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
-                scewl_pk[i].flag = 0;
-                scewl_pk[i].scewl_id = tgt_id;
+                scewl_pk[i].flag = 1;
+                scewl_pk[i].scewl_id = src_id;
 
-                // send_str("set scewl_pk...\n");
-                // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
                 idx = i;
                 i = 16;
                 flag = 0;
-                // return i;
               }
             }
-            // break;
-            // handle_scewl_recv(msg, src_id, len);
-
-            // send_str("recevie get_scewl_pk...\n");
-            // send_auth_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)&msg, RSA_DEC);
           }
         }
       }
     }
   }
 
-  send_str("Now we have the public key!");
-  // if (intf_avail(RAD_INTF))
+  // send_str("Now we have the public key!");
 
-  // if (check_scewl_pk_msg(buf) < 0)
-  // {
-  //   handle_scewl_send(&buf, tgt_id, len);
-  // }
-  // else
-  // {
-  // }
   return idx;
 }
 
@@ -241,13 +223,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     idx = check_scewl_pk(tgt_id);
     if (idx < 0)
     {
-      send_str("Cannot find the target public key! Please get the public key first...");
-      idx = send_get_scewl_pk_msg(src_id, tgt_id);
-      send_str("Target public key set done...");
-      // idx = check_scewl_pk(tgt_id);
-      // return 0;
-      // [todo] key exchange
-      rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, &scewl_pk[idx].pk);
+      send_str("Key_enc: please get the target public key first!");
     }
     else
     {
@@ -463,6 +439,18 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
   scewl_msg_t scewl_msg;
   memset(&scewl_msg, 0, sizeof(scewl_msg_t));
+
+  if (rsa_mode == RSA_ENC)
+  {
+    if (check_scewl_pk(tgt_id) < 0)
+    {
+      send_str("Send_enc_msg: getting target public key! ");
+      idx = send_get_scewl_pk_msg(src_id, tgt_id);
+      send_str("Target public key set done...");
+      // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(int), (char *)&idx);
+      // [todo] key exchange
+    }
+  }
 
   enc_msg(src_id, tgt_id, len, data, &scewl_msg, rsa_mode);
 
