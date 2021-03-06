@@ -604,7 +604,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   return SCEWL_OK;
 }
 
-int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data)
+int send_sign_SSS_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint16_t op)
 {
   scewl_hdr_t hdr;
   scewl_sss_crypto_msg_t sss_crypto_msg;
@@ -625,7 +625,7 @@ int send_sign_reg_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   // pack the sss_crypto_msg
   memset(&sss_crypto_msg, 0, RSA_BLOCK);
   sss_crypto_msg.dev_id = SCEWL_ID;
-  sss_crypto_msg.op = SCEWL_SSS_REG;
+  sss_crypto_msg.op = op;
   sss_crypto_msg.src_id = src_id;
   sss_crypto_msg.tgt_id = tgt_id;
 
@@ -872,7 +872,7 @@ int sss_register()
 
 // send registration
 #ifdef REG_CRYPTO
-  status = send_sign_reg_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
+  status = send_sign_SSS_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg, msg.op);
 #else
   status = send_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #endif
@@ -957,7 +957,7 @@ int sss_deregister()
 
 // send registration
 #ifdef REG_CRYPTO
-  status = send_enc_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg, RSA_SIGN);
+  status = send_sign_SSS_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg, msg.op);
 #else
   status = send_msg(SSS_INTF, SCEWL_ID, SCEWL_SSS_ID, sizeof(msg), (char *)&msg);
 #endif

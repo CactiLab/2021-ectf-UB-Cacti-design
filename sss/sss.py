@@ -64,7 +64,7 @@ class SSS:
         while len(data) < 72:
             recvd = csock.recv(72 - len(data))
             data += recvd
-
+            logging.info(f'data len: {len(data)}')
             # check for closed connection
             if not recvd:
                 raise ConnectionResetError
@@ -146,14 +146,17 @@ class SSS:
                 logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
             logging.info(f'-----------DONE for {dev_id}------')
             logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
+            if (op == 0):
+                other_sed_pub = prepare_response(registered_sed_list)
+                logging.info(f'Public key : {other_sed_pub}')
+                logging.info(f'Public key length : {len(other_sed_pub)}')
+                message_length = len(other_sed_pub) + 5
+                resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
+                resp = resp + other_sed_pub
+                logging.info(f'Response : {resp}')
+            else:
+                resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
 
-            other_sed_pub = prepare_response(registered_sed_list)
-            logging.info(f'Public key : {other_sed_pub}')
-            logging.info(f'Public key length : {len(other_sed_pub)}')
-            message_length = len(other_sed_pub) + 5
-            resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
-            resp = resp + other_sed_pub
-            logging.info(f'Response : {resp}')
             # send response
             logging.debug(f'Sending response {repr(data)}')
             csock.send(resp)
