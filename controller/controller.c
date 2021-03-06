@@ -486,11 +486,9 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   scewl_crypto_msg_t *crypto_msg = NULL;
   scewl_msg_t *scewl_msg = NULL;
 
-  uint8_t plaintext[SCEWL_MAX_DATA_SZ];
-  uint8_t ciphertext[SCEWL_MAX_DATA_SZ];
-
-  memset(ciphertext, 0, SCEWL_MAX_DATA_SZ);
-  memset(plaintext, 0, SCEWL_MAX_DATA_SZ);
+  // this is not secure, but use SCEWL_MAX_DATA_SZ, the system will crash
+  uint8_t plaintext[dec_len];
+  memset(plaintext, 0, dec_len);
 
   scewl_msg = (scewl_msg_t *)data;
 
@@ -594,9 +592,8 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   hdr.tgt_id = tgt_id;
   hdr.len = dec_len - sizeof(scewl_crypto_msg_hdr_t);
 
-  // this is not secure, but use SCEWL_MAX_DATA_SZ, the system will crash
-  uint8_t output[hdr.len];
-  memset(output, 0, hdr.len);
+  uint8_t output[SCEWL_MAX_DATA_SZ];
+  memset(output, 0, SCEWL_MAX_DATA_SZ);
 
   auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
 
