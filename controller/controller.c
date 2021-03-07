@@ -410,6 +410,9 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
 
     // send_str("Checkging the header...\n");
     crypto_msg = (scewl_crypto_msg_t *)plaintext;
+    if (broad_cast_flag) {
+      update_dereigstration_information(src_id, crypto_msg->body);
+    }
 #ifdef DEBUG_MSG_CRYPTO
     send_str("src_id:\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)crypto_msg->src_id);
