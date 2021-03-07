@@ -47,17 +47,20 @@ void SysTick_Handler(void)
   sysTimer++;
 }
 
-void update_dereigstration_information (scewl_id_t deregistered_sed, uint8_t *de_reg_body) {
+void update_dereigstration_information(scewl_id_t deregistered_sed, uint8_t *de_reg_body)
+{
   //send_str("Checking if broad cast is a derigster message");
-  if (strcmp(de_reg_body, "DEREGISTER") == 0) {
-    // logic for dereigster goes here 
+  if (strcmp(de_reg_body, "DEREGISTER") == 0)
+  {
+    // logic for dereigster goes here
     // memset public key information of deregistering SED
-    for (int i = 0; i < 16; i++) {
-      if (scewl_pk[i].scewl_id == deregistered_sed) {
+    for (int i = 0; i < 16; i++)
+    {
+      if (scewl_pk[i].scewl_id == deregistered_sed)
+      {
         memset(&scewl_pk[i], 0, sizeof(scewl_pub_t));
       }
     }
-   
   }
 }
 
@@ -119,7 +122,6 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     // handler broadcast aes_key crypto, private key to sign, public key to auth
   case RSA_SIGN:
     /* sign */
-    // send_str("sending broadcast...");
     rsa_decrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, own_sk);
     break;
   case RSA_ENC:
@@ -145,28 +147,6 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     break;
   }
   // memset(enc_aes_key, 0, keyLen);
-
-#ifdef DEBUG_KEY_CRYPTO
-  // send_str("Decryption starts...\n");
-  // send_str("sk->d1...\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)sk->d1);
-  // rsa_decrypt(decipher, MAX_MODULUS_LENGTH, scewl_msg->aes_key, MAX_MODULUS_LENGTH, sk);
-  // hex_to_string(plaintext, decipher);
-  // send_str("Decryption done...\n\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
-
-  // send_str("Plaintext...\n\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)plaintext);
-
-  // if (BN_cmp(message, MAX_MODULUS_LENGTH, plaintext, MAX_MODULUS_LENGTH) == 0)
-  // {
-  //   send_str("\nAfter decryption, plaintext equal to message.\n");
-  // }
-  // else
-  // {
-  //   send_str("\nAfter decryption, wrong answer.\n");
-  // }
-#endif
 
   return 0;
 }
@@ -228,7 +208,8 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
 
 bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
 {
-  if (broad_cast_flag) {
+  if (broad_cast_flag)
+  {
     source_SED = 0;
   }
   if (messeage_sq.sq_receive[source_SED] < received_sq_number)
@@ -239,13 +220,6 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
   broad_cast_flag = false;
   return false;
 }
-
-/*
-  Check message type:
-    CPU_INTF UART0
-    SSS_INTF UART1
-    RAD_INTF UART2
-*/
 
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *send_scewl_msg, uint8_t rsa_mode)
 {
@@ -266,7 +240,6 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   memset(iv, 0, ivLen);
   memset(ciphertext, 0, SCEWL_MAX_CRYPTO_DATA_SZ);
   memset(&scewl_msg, 0, sizeof(scewl_msg_t));
-  // memset(&crypto_msg, 0, sizeof(scewl_crypto_msg_t));
 
   // setup random aes_key and iv
   srand(sysTimer);
@@ -339,7 +312,6 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, tagLen, (char *)scewl_msg.tag);
   send_str("ciphertext:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, enc_len, (char *)&scewl_msg.crypto_msg);
-  // memset(ciphertext, 0, 16);
 #endif
   memcpy(send_scewl_msg, &scewl_msg, sizeof(scewl_msg));
 
@@ -361,9 +333,6 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
   scewl_msg_t send_scewl_msg;
   memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
-
-  // send_str("enc_msg");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
 
   enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
 
@@ -387,7 +356,6 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   scewl_crypto_msg_t *crypto_msg = NULL;
   scewl_msg_t *scewl_msg = NULL;
 
-  // this is not secure, but use SCEWL_MAX_DATA_SZ, the system will crash
   uint8_t plaintext[SCEWL_MAX_CRYPTO_DATA_SZ];
   memset(plaintext, 0, SCEWL_MAX_CRYPTO_DATA_SZ);
 
@@ -499,15 +467,10 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 
   auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
 
-  // send_str("received message");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, hdr.len, (char *)&output);
-
   scewl_get_pk_hdr_t get_pk_hdr;
   memset(&get_pk_hdr, 0, sizeof(scewl_get_pk_hdr_t));
-  // send_str("received broadcast");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_get_pk_hdr_t), (char *)&get_pk_hdr);
 
-  // unpack broadcast header to notify the scewl that want the publik key
+  // unpack header to notify the scewl that want the publik key
   memcpy(&get_pk_hdr, output, sizeof(scewl_get_pk_hdr_t));
 
   if ((get_pk_hdr.magicP == 'P') && (get_pk_hdr.magicK == 'K'))
@@ -528,14 +491,38 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
         scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
         scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
         scewl_pk[i].flag = 1;
+        idx = i;
+        i = 16;
 #ifdef DEBUG_PK_TEST
         send_str("target pk");
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
 #endif
-
-        return SCEWL_OK;
       }
     }
+    // after setting the public key, sends it to previous scewl
+    if (pre_scewl_id != 0)
+    {
+      send_str("previous scewl");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&pre_scewl_id);
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
+
+      // pack broadcast header to notify the scewl that want the publik key
+      memset(&get_pk_hdr, 0, sizeof(scewl_get_pk_hdr_t));
+      get_pk_hdr.magicP = 'P';
+      get_pk_hdr.magicK = 'K';
+      get_pk_hdr.src_id = pre_scewl_id;
+      get_pk_hdr.tgt_id = SCEWL_ID;
+      memcpy(&get_pk_hdr.pk, &scewl_pk[idx].pk, sizeof(rsa_pk));
+
+#ifdef DEBUG_PK_TEST
+      send_str("sending the public key...\n");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_get_pk_hdr_t), (char *)&get_pk_hdr);
+#endif
+      // send_str("update the pk of the previous SCEWL...\n");
+      send_enc_msg(RAD_INTF, SCEWL_ID, pre_scewl_id, sizeof(scewl_get_pk_hdr_t), (char *)&get_pk_hdr, RSA_ENC);
+    }
+
+    return SCEWL_OK;
   }
 
   // send header
@@ -840,15 +827,14 @@ int sss_register()
       scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
       scewl_pk[i].flag = 1;
       pos = i;
-      i = 16;
-#ifdef DEBUG_REG_CRYPTO
-      send_str("flag\n");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(uint8_t), (char *)&scewl_pk[i].flag);
+      // #ifdef DEBUG_REG_CRYPTO
+      send_str("idx\n");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(uint8_t), (char *)i);
       send_str("SED_id\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_id_t), (char *)&scewl_pk[i].scewl_id);
       send_str("SED_id publick key\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
-#endif
+      // #endif
     }
     pre_scewl_id = scewl_pk[pos].scewl_id;
 #ifdef DEBUG_PK_TEST
@@ -872,6 +858,7 @@ int sss_register()
   // notify CPU of response
   // send_str("notify the cpu...\n");
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_sss_msg_t), (char *)&msg);
+
   status = send_msg(CPU_INTF, src_id, tgt_id, sizeof(scewl_sss_msg_t), (char *)&msg);
   // #endif
   if (status == SCEWL_ERR)
@@ -885,7 +872,7 @@ int sss_register()
 
 // purpose is to let every one know about the de-registration
 
-void notify_deregistration() 
+void notify_deregistration()
 {
   send_str("sending de-register message to every one");
   char de_register_message[10] = {'D', 'E', 'R', 'E', 'G', 'I', 'S', 'T', 'E', 'R'};
@@ -925,7 +912,6 @@ int sss_deregister()
   }
 
   //broad cast deregistration message to every other SED currectly deployed
-
   notify_deregistration();
 
   // op should be DEREG on success
