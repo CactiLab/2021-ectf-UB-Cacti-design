@@ -809,7 +809,6 @@ int sss_register()
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&totalSEDs);
 #endif
   // loop to set scewl public key
-
   if (totalSEDs == 0)
   {
     // this sed is the first regitered one
@@ -820,8 +819,8 @@ int sss_register()
     for (i = 0; i < totalSEDs; i++)
     {
       // set_scewl_pk(tgt_id, (rsa_pk *)&buf + sizeof(scewl_sss_msg_t) + i * sizeof(scewl_pub_t));
-
-      memcpy(&scewl_pk[i].scewl_id, (char *)&buf + sizeof(scewl_sss_msg_t) + i * sizeof(scewl_pub_t) + 1, sizeof(scewl_pub_t));
+      // current header(4) + totalSEDs(1) + (dev_id(2) + rsa_pk(162)) * totalSEDs
+      memcpy(&scewl_pk[i].scewl_id, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * i, sizeof(scewl_pub_t));
       // configure the e
       BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
       //e=2^16+1
