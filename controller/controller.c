@@ -58,11 +58,6 @@ void update_dereigstration_information(scewl_id_t deregistered_sed, uint8_t *de_
     {
       if (scewl_pk[i].scewl_id == deregistered_sed)
       {
-        if (i != 0) {
-          pre_scewl_id = scewl_pk[i - 1].scewl_id;
-        } else {
-          pre_scewl_id = 0;
-        }
         memset(&scewl_pk[i], 0, sizeof(scewl_pub_t));
       }
     }
@@ -418,7 +413,7 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
 #endif
     if ((crypto_msg->src_id == src_id) && (crypto_msg->tgt_id == tgt_id) && (crypto_msg->len == len))
     {
-      send_str("Authentication Success!\n");
+      // send_str("Authentication Success!\n");
     }
     else
     {
@@ -434,7 +429,7 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
 
   if (check_sequence_number(src_id, crypto_msg->sq))
   {
-    send_str("Sequence numebr validation success");
+    // send_str("Sequence numebr validation success");
   }
   else
   {
@@ -523,6 +518,8 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
       send_str("sending the public key...\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_get_pk_hdr_t), (char *)&get_pk_hdr);
 #endif
+      send_str("previous scewl...\n");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)pre_scewl_id);
       // send_str("update the pk of the previous SCEWL...\n");
       send_enc_msg(RAD_INTF, SCEWL_ID, pre_scewl_id, sizeof(scewl_get_pk_hdr_t), (char *)&get_pk_hdr, RSA_ENC);
     }
@@ -832,19 +829,19 @@ int sss_register()
       scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
       scewl_pk[i].flag = 1;
       pos = i;
-      #ifdef DEBUG_REG_CRYPTO
+// #ifdef DEBUG_REG_CRYPTO
       send_str("idx\n");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(uint8_t), (char *)i);
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(uint8_t), (char *)&i);
       send_str("SED_id\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_id_t), (char *)&scewl_pk[i].scewl_id);
-      send_str("SED_id publick key\n");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
-      #endif
+//       send_str("SED_id publick key\n");
+//       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
+// #endif
     }
     pre_scewl_id = scewl_pk[pos].scewl_id;
 #ifdef DEBUG_PK_TEST
     send_str("previous sed...\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&pre_scewl_id);
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[pos].scewl_id);
 #endif
     // pack broadcast header to notify the scewl that want the publik key
     get_pk_hdr.magicP = 'P';
