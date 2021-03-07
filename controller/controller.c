@@ -212,7 +212,7 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
   {
     source_SED = 0;
   }
-  if (messeage_sq.sq_receive[source_SED] < received_sq_number)
+  if (messeage_sq.sq_receive[source_SED] <= received_sq_number)
   {
     messeage_sq.sq_receive[source_SED] = received_sq_number;
     return true;
