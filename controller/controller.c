@@ -175,7 +175,7 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     }
     else
     {
-      send_str("Authenticate the message!");
+      // send_str("Authenticate the message!");
       // rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, &scewl_pk[idx].pk);
       rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, &scewl_pk[idx].pk);
     }
@@ -837,14 +837,14 @@ int sss_register()
       scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
       scewl_pk[i].flag = 1;
       pos = i;
-// #ifdef DEBUG_REG_CRYPTO
+#ifdef DEBUG_REG_CRYPTO
       send_str("idx\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(uint8_t), (char *)&i);
       send_str("SED_id\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_id_t), (char *)&scewl_pk[i].scewl_id);
 //       send_str("SED_id publick key\n");
 //       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
-// #endif
+#endif
     }
     pre_scewl_id = scewl_pk[pos].scewl_id;
 #ifdef DEBUG_PK_TEST
