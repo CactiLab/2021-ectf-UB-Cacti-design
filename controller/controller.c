@@ -58,6 +58,11 @@ void update_dereigstration_information(scewl_id_t deregistered_sed, uint8_t *de_
     {
       if (scewl_pk[i].scewl_id == deregistered_sed)
       {
+        if (i != 0) {
+          pre_scewl_id = scewl_pk[i - 1].scewl_id;
+        } else {
+          pre_scewl_id = 0;
+        }
         memset(&scewl_pk[i], 0, sizeof(scewl_pub_t));
       }
     }
