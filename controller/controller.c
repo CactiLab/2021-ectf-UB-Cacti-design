@@ -475,19 +475,21 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t rsa_mode)
 {
   scewl_hdr_t hdr;
-  int idx = 0;
+  int tmp = 0;
+
+  tmp = (len + MSG_HDR + CRYPTO_HDR) %4;
 
   // pack header
   hdr.magicS = 'S';
   hdr.magicC = 'C';
   hdr.src_id = src_id;
   hdr.tgt_id = tgt_id;
-  hdr.len = len + MSG_HDR + CRYPTO_HDR; // crypto message: msg header + 4 bytes sequence number + body (data)
+  hdr.len = len + MSG_HDR + CRYPTO_HDR + tmp; // crypto message: msg header + 4 bytes sequence number + body (data)
 
   scewl_msg_t send_scewl_msg;
   memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
 
-  enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
+  enc_msg(src_id, tgt_id, len + tmp, data, &send_scewl_msg, rsa_mode);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
