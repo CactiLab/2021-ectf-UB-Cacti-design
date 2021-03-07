@@ -154,7 +154,20 @@ typedef struct scewl_pub_t
   rsa_pk pk;
 } scewl_pub_t;
 
+typedef struct scewl_get_pk_msg_t
+{
+  scewl_id_t src_id;
+  scewl_id_t tgt_id;
+} scewl_get_pk_msg_t;
+
 typedef struct scewl_get_pk_hdr_t
+{
+  uint8_t magicP; // all messages must start with the magic code "PK"
+  uint8_t magicK;
+  scewl_get_pk_msg_t scewl_get_pk_msg;
+} scewl_get_pk_hdr_t;
+
+typedef struct scewl_update_pk_t
 {
   uint8_t magicP; // all messages must start with the magic code "PK"
   // uint8_t magicU;
@@ -163,7 +176,18 @@ typedef struct scewl_get_pk_hdr_t
   scewl_id_t src_id;
   scewl_id_t tgt_id;
   rsa_pk pk;
-} scewl_get_pk_hdr_t;
+} scewl_update_pk_t;
+
+typedef struct scewl_rec_pk_hdr_t
+{
+  uint8_t magicP; // all messages must start with the magic code "PK"
+  // uint8_t magicU;
+  // uint8_t magicB; // all messages must start with the magic code "PUBK"
+  uint8_t magicK;
+  scewl_id_t src_id;
+  scewl_id_t tgt_id;
+  rsa_pk pk;
+} scewl_rec_pk_hdr_t;
 
 // SCEWL status codes
 enum scewl_status
