@@ -32,7 +32,7 @@ typedef uint16_t scewl_id_t;
 #define SCEWL_ID 0
 #endif
 
-#define max(x,y) (((x) >= (y)) ? (x) : (y))
+#define max(x, y) (((x) >= (y)) ? (x) : (y))
 #define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
 #define BLOCK_SIZE 16
 #define CRYPTO_SIZE 16
@@ -49,6 +49,9 @@ typedef uint16_t scewl_id_t;
 
 #define currentPos 0
 #define totalSEDPos 4
+
+#define CRYPTO_HDR 12
+#define MSG_HDR 96
 
 /******************************** start example ********************************/
 // #define EXAMPLE_AES_GCM 1
@@ -67,14 +70,13 @@ typedef uint16_t scewl_id_t;
 
 /******************************** start crypto ********************************/
 #define MSG_CRYPTO 1
-// #define DEBUG_MSG_CRYPTO 1
+#define DEBUG_MSG_CRYPTO 1
 // #define DEBUG_TIMER 1
 // #define SQ_DEBUG 1
 #define KEY_CRYPTO 1
 // #define DEBUG_KEY_CRYPTO 1
 // #define RSA_CRYPTO 1
 /******************************** end crypto ********************************/
-
 
 bool broad_cast_flag = false;
 // SCEWL bus channel header
@@ -90,20 +92,24 @@ typedef struct scewl_hdr_t
 } scewl_hdr_t;
 
 // message format: | scewl_header | AENCpk(ka) | IV | tag | ENC(ka, iva)(header + message) |
-// size: keyLen + ivLen + tagLen + crypto_bodyLen = 32 + 12 + 16 + bodyLen = 60 + bodyLen
+// size: magicPK keyLen + ivLen + tagLen + crypto_bodyLen = 2 + 64 + 12 + 16 +2 = 96
 typedef struct scewl_msg_hdr_t
 {
+  uint8_t magicP; // magic code "PK"
+  uint8_t magicK;
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];             //
   uint8_t tag[tagLen];
+  uint8_t padding[2];
 } scewl_msg_hdr_t;
 
-typedef struct scewl_crypto_msg_hdr_t
+typedef struct scewl_crypto_msg_hdr_t  // 12 bytes
 {
   scewl_id_t tgt_id;
   scewl_id_t src_id;
   uint16_t len;
   uint32_t sq;
+  uint8_t padding[2];
 } scewl_crypto_msg_hdr_t;
 
 typedef struct scewl_crypto_msg_t
@@ -112,14 +118,18 @@ typedef struct scewl_crypto_msg_t
   scewl_id_t src_id;
   uint16_t len;
   uint32_t sq;
+  uint8_t padding[2];
   uint8_t body[SCEWL_MAX_DATA_SZ];
 } scewl_crypto_msg_t;
 
 typedef struct scewl_msg_t
 {
+  uint8_t magicP; // magic code "PK"
+  uint8_t magicK;
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];             //
   uint8_t tag[tagLen];
+  uint8_t padding[2];
   scewl_crypto_msg_t crypto_msg;
 } scewl_msg_t;
 
@@ -147,25 +157,20 @@ typedef struct scewl_sss_crypto_msg_t
   DTYPE padding[MAX_MODULUS_LENGTH - 4];
 } scewl_sss_crypto_msg_t;
 
-typedef struct scewl_pub_t
+typedef struct scewl_pub_t  // 162+2+1+3=168
 {
   uint8_t flag;
   scewl_id_t scewl_id;
   rsa_pk pk;
+  uint8_t padding[3];
 } scewl_pub_t;
 
 typedef struct scewl_get_pk_msg_t
 {
-  scewl_id_t src_id;
-  scewl_id_t tgt_id;
-} scewl_get_pk_msg_t;
-
-typedef struct scewl_get_pk_hdr_t
-{
   uint8_t magicP; // all messages must start with the magic code "PK"
   uint8_t magicK;
-  scewl_get_pk_msg_t scewl_get_pk_msg;
-} scewl_get_pk_hdr_t;
+  scewl_msg_t send_scewl_msg;
+} scewl_get_pk_msg_t;
 
 typedef struct scewl_update_pk_t
 {
@@ -177,6 +182,17 @@ typedef struct scewl_update_pk_t
   scewl_id_t tgt_id;
   rsa_pk pk;
 } scewl_update_pk_t;
+
+typedef struct scewl_get_pk_t
+{
+  uint8_t magicP; // all messages must start with the magic code "PK"
+  // uint8_t magicU;
+  // uint8_t magicB; // all messages must start with the magic code "PUBK"
+  uint8_t magicK;
+  scewl_id_t src_id;
+  scewl_id_t tgt_id;
+  uint8_t msg[11];
+} scewl_get_pk_t;
 
 typedef struct scewl_rec_pk_hdr_t
 {
@@ -220,7 +236,10 @@ enum rsa_mode
   RSA_SIGN,
   RSA_ENC,
   RSA_DEC,
-  RSA_BRDCST
+  RSA_UPDATE_PK,
+  RSA_REQ_PK,
+  RSA_RECV_GET_PK,
+  RSA_SEND_PK
 };
 
 int check_scewl_pk(scewl_id_t tgt_id);
