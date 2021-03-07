@@ -58,6 +58,11 @@ void update_dereigstration_information(scewl_id_t deregistered_sed, uint8_t *de_
     {
       if (scewl_pk[i].scewl_id == deregistered_sed)
       {
+        if (i != 0) {
+          pre_scewl_id = scewl_pk[i - 1].scewl_id;
+        } else {
+          pre_scewl_id = 0;
+        }
         memset(&scewl_pk[i], 0, sizeof(scewl_pub_t));
       }
     }
@@ -257,6 +262,10 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   scewl_msg.crypto_msg.tgt_id = tgt_id;
   scewl_msg.crypto_msg.src_id = src_id;
   scewl_msg.crypto_msg.len = scewl_msg_body_len;
+  if (tgt_id == 0) {
+    messeage_sq.sq_send[tgt_id] = max(messeage_sq.sq_receive[tgt_id], messeage_sq.sq_send[tgt_id]);
+    messeage_sq.sq_receive[tgt_id] = messeage_sq.sq_send[tgt_id];
+  }
   scewl_msg.crypto_msg.sq = ++messeage_sq.sq_send[tgt_id]; // setup the sequence number
   memcpy(scewl_msg.crypto_msg.body, data, len);            // setup the plaintext
 
