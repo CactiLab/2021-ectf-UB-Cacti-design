@@ -36,6 +36,7 @@ typedef uint16_t scewl_id_t;
 #define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
 #define BLOCK_SIZE 16
 #define CRYPTO_SIZE 16
+#define SCEWL_PK_SIZE 22
 
 #define keyLen 32
 #define keyCryptoLen 64
@@ -162,15 +163,8 @@ typedef struct scewl_pub_t  // 162+2+2+2=168
   uint8_t flag;
   scewl_id_t scewl_id;
   rsa_pk pk;
-  uint8_t padding[2];
+  uint8_t padding[3];
 } scewl_pub_t;
-
-typedef struct scewl_get_pk_msg_t
-{
-  uint8_t magicP; // all messages must start with the magic code "PK"
-  uint8_t magicK;
-  scewl_msg_t send_scewl_msg;
-} scewl_get_pk_msg_t;
 
 typedef struct scewl_update_pk_t
 {
@@ -178,8 +172,6 @@ typedef struct scewl_update_pk_t
   // uint8_t magicU;
   // uint8_t magicB; // all messages must start with the magic code "PUBK"
   uint8_t magicK;
-  scewl_id_t src_id;
-  scewl_id_t tgt_id;
   rsa_pk pk;
 } scewl_update_pk_t;
 
