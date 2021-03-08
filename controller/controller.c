@@ -1044,14 +1044,14 @@ int sss_register()
 }
 
 // purpose is to let every one know about the de-registration
-
+/*
 void notify_deregistration()
 {
   send_str("sending de-register message to every one");
   char de_register_message[10] = {'D', 'E', 'R', 'E', 'G', 'I', 'S', 'T', 'E', 'R'};
 
   handle_brdcst_send(de_register_message, 10);
-}
+} */
 
 int sss_deregister()
 {
@@ -1085,7 +1085,7 @@ int sss_deregister()
   }
 
   //broad cast deregistration message to every other SED currectly deployed
-  notify_deregistration();
+  //notify_deregistration();
 
   // op should be DEREG on success
   return msg.op == SCEWL_SSS_DEREG;
