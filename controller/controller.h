@@ -100,7 +100,7 @@ typedef struct scewl_msg_hdr_t
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];             //
   uint8_t tag[tagLen];
-  uint8_t padding[2];
+  uint16_t padding;
 } scewl_msg_hdr_t;
 
 typedef struct scewl_crypto_msg_hdr_t  // 12 bytes
@@ -109,7 +109,7 @@ typedef struct scewl_crypto_msg_hdr_t  // 12 bytes
   scewl_id_t src_id;
   uint16_t len;
   uint32_t sq;
-  uint8_t padding[2];
+  uint16_t padding;
 } scewl_crypto_msg_hdr_t;
 
 typedef struct scewl_crypto_msg_t
@@ -118,7 +118,7 @@ typedef struct scewl_crypto_msg_t
   scewl_id_t src_id;
   uint16_t len;
   uint32_t sq;
-  uint8_t padding[2];
+  uint16_t padding;
   uint8_t body[SCEWL_MAX_DATA_SZ];
 } scewl_crypto_msg_t;
 
@@ -129,7 +129,7 @@ typedef struct scewl_msg_t
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];             //
   uint8_t tag[tagLen];
-  uint8_t padding[2];
+  uint16_t padding;
   scewl_crypto_msg_t crypto_msg;
 } scewl_msg_t;
 
@@ -157,12 +157,12 @@ typedef struct scewl_sss_crypto_msg_t
   DTYPE padding[MAX_MODULUS_LENGTH - 4];
 } scewl_sss_crypto_msg_t;
 
-typedef struct scewl_pub_t  // 162+2+1+3=168
+typedef struct scewl_pub_t  // 162+2+2+2=168
 {
   uint8_t flag;
   scewl_id_t scewl_id;
   rsa_pk pk;
-  uint8_t padding[3];
+  uint8_t padding[2];
 } scewl_pub_t;
 
 typedef struct scewl_get_pk_msg_t
