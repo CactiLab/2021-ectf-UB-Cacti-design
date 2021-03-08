@@ -55,7 +55,7 @@ int main(void) {
   sleep(2);
   int i = 0;
   fw_SED = 0;
-  while (i< 10) { 
+  while (i< 20) { 
     
     
     #ifdef debug_message
