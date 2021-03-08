@@ -47,31 +47,6 @@ void SysTick_Handler(void)
   sysTimer++;
 }
 
-void update_dereigstration_information(scewl_id_t deregistered_sed, uint8_t *de_reg_body)
-{
-  //send_str("Checking if broad cast is a derigster message");
-  if (strcmp(de_reg_body, "DEREGISTER") == 0)
-  {
-    // logic for dereigster goes here
-    // memset public key information of deregistering SED
-    for (int i = 0; i < 16; i++)
-    {
-      if (scewl_pk[i].scewl_id == deregistered_sed)
-      {
-        if (i != 0)
-        {
-          pre_scewl_id = scewl_pk[i - 1].scewl_id;
-        }
-        else
-        {
-          pre_scewl_id = 0;
-        }
-        memset(&scewl_pk[i], 0, sizeof(scewl_pub_t));
-        scewl_pk[i].scewl_id = deregistered_sed;
-      }
-    }
-  }
-}
 
 int check_scewl_pk(scewl_id_t tgt_id)
 {
@@ -565,11 +540,6 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
 
     // send_str("Checkging the header...\n");
     // crypto_msg = (scewl_crypto_msg_t *)plaintext;
-    if (broad_cast_flag)
-    {
-      // update_dereigstration_information(src_id, crypto_msg.body);
-      // broad_cast_flag = 0;
-    }
 #ifdef DEBUG_MSG_CRYPTO
     // send_str("src_id:\n");
     // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&crypto_msg.src_id);
