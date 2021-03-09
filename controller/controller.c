@@ -175,6 +175,7 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
         }
       }
     }
+
     end = sysTimer;
     delay = end - start;
     if (delay > 600000)
@@ -463,7 +464,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 {
   scewl_hdr_t hdr;
   int tmp = 0;
-  // char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
+  // char tmp_buf[SCEWL_MAX_DATA_SZ + 8] = {0};
 
   tmp = (len + MSG_HDR + CRYPTO_HDR) % 4;
 
@@ -481,6 +482,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 
   // memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
   // memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&send_scewl_msg, hdr.len);
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, tmp_buf);
   // intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
 
   // send header
@@ -905,27 +907,38 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
 
-  int ret = check_scewl_pk(src_id);
-  if (ret == 0x55)
+  if (src_id == SCEWL_FAA_ID)
   {
-    send_str("handle_brdcst_recv: source scewl already deregistered!");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-    return SCEWL_OK;
+    send_str("handle_brdcst_recv: receive faa brdcst!");
+    return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
+    // return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
   }
-  else if (ret < 0)
+  else
   {
-    send_str("handle_brdcst_recv: does not have source public key");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-    // send_get_scewl_pk_msg(src_id);
-    if (send_get_scewl_pk_msg(src_id) == SCEWL_ERR)
+    int ret = check_scewl_pk(src_id);
+    if (ret == 0x55)
     {
-      // send_str("handle_scewl_send: get tgt pk timeout!");
-      return SCEWL_ERR;
+      send_str("handle_brdcst_recv: source scewl already deregistered!");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+      return SCEWL_OK;
     }
-    // return SCEWL_OK;
+    else if (ret < 0)
+    {
+      send_str("handle_brdcst_recv: does not have source public key");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+      // send_get_scewl_pk_msg(src_id);
+      if (send_get_scewl_pk_msg(src_id) == SCEWL_ERR)
+      {
+        // send_str("handle_scewl_send: get tgt pk timeout!");
+        return SCEWL_ERR;
+      }
+      // return SCEWL_OK;
+      else
+      {
+        send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
+      }
+    }
   }
-
-  return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #endif
