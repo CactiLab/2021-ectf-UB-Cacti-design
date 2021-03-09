@@ -978,9 +978,6 @@ int handle_registration(char *msg)
   {
     return sss_deregister();
   }
-
-  // bad op
-  return 0;
 }
 
 int sss_register()
