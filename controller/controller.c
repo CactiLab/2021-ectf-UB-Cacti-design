@@ -275,7 +275,6 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     {
       send_str("Key_dec: does not have its public key!");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-      send_get_scewl_pk_msg(src_id);
       return SCEWL_ERR;
     }
     else
@@ -928,7 +927,7 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
     send_str("handle_scewl_send: does not have target public key");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
     send_get_scewl_pk_msg(tgt_id);
-    return SCEWL_OK;
+    // return SCEWL_OK;
   }
 
   return send_enc_msg(RAD_INTF, SCEWL_ID, tgt_id, len, data, RSA_ENC);
@@ -942,19 +941,20 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 #ifdef MSG_CRYPTO
   broad_cast_flag = true;
 
-  // int ret = check_scewl_pk(src_id);
-  // if (ret == 0x55)
-  // {
-  //   send_str("handle_brdcst_recv: source scewl already deregistered!");
-  //   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-  //   return SCEWL_OK;
-  // }
-  // else if (ret < 0)
-  // {
-  //   send_str("handle_brdcst_recv: does not have source public key");
-  //   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-  //   send_get_scewl_pk_msg(src_id);
-  // }
+  int ret = check_scewl_pk(src_id);
+  if (ret == 0x55)
+  {
+    send_str("handle_brdcst_recv: source scewl already deregistered!");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+    return SCEWL_OK;
+  }
+  else if (ret < 0)
+  {
+    send_str("handle_brdcst_recv: does not have source public key");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+    send_get_scewl_pk_msg(src_id);
+    // return SCEWL_OK;
+  }
 
   return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
 #else
