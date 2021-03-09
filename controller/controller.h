@@ -19,7 +19,7 @@
 //#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4000 + 80 //max data size + data verify header
+#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4000 + 108 //max data size + data verify header
 #define SCEWL_MAX_DATA_SZ 0x4000             //max data size
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 256
@@ -34,8 +34,6 @@ typedef uint16_t scewl_id_t;
 
 #define max(x, y) (((x) >= (y)) ? (x) : (y))
 #define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
-#define BLOCK_SIZE 16
-#define CRYPTO_SIZE 16
 #define SCEWL_PK_NUM 22
 
 #define keyLen 32
@@ -45,38 +43,22 @@ typedef uint16_t scewl_id_t;
 #define ptLen 16
 #define ctLen 16
 #define tagLen 16
-#define msgHeader 60
 #define RSA_BLOCK 64
-
-#define currentPos 0
-#define totalSEDPos 4
 
 #define CRYPTO_HDR 12
 #define MSG_HDR 96
 
-/******************************** start example ********************************/
-// #define EXAMPLE_AES_GCM 1
-// #define CRYPTO_TEST 1
-// #define RSA_TEST
-// #define RSA_SIG_TEST
-/******************************** end example ********************************/
-
 /******************************** start sss signature ********************************/
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-#define SEND_SIGN_REG 1 // uncomment this line to send signed sss_msg
-// #define DEBUG_REG_CRYPTO 1
 // #define DEBUG_PK_TEST 1
-// #define DEBUG_BRDCST
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/
 #define MSG_CRYPTO 1
 // #define DEBUG_MSG_CRYPTO 1
-// #define DEBUG_TIMER 1
 // #define SQ_DEBUG 1
 #define KEY_CRYPTO 1
-// #define DEBUG_KEY_CRYPTO 1
-// #define RSA_CRYPTO 1
+
 /******************************** end crypto ********************************/
 
 // SCEWL bus channel header
@@ -168,8 +150,6 @@ typedef struct scewl_pub_t // 162+2+2+2=168
 typedef struct scewl_update_pk_t
 {
   uint8_t magicP; // all messages must start with the magic code "PK"
-  // uint8_t magicU;
-  // uint8_t magicB; // all messages must start with the magic code "PUBK"
   uint8_t magicK;
   rsa_pk pk;
 } scewl_update_pk_t;
@@ -209,10 +189,17 @@ enum rsa_mode
   RSA_SEND_PK
 };
 
+
+/*
+ * check_scewl_pk
+ * 
+ * Sends a message in the SCEWL pkt format to an interface
+ * 
+ * Args:
+ *   tgt_id - the id of the target device we want to know the public key
+ */
 int check_scewl_pk(scewl_id_t tgt_id);
 int send_get_scewl_pk_msg(scewl_id_t tgt_id);
-int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
-int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
 
 /*
  * send_enc_msg
@@ -226,6 +213,7 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
  *   len - the length of message
  *   data - pointer to the message
  */
+int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *send_scewl_msg, uint8_t rsa_mode);
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t mode);
 
@@ -241,6 +229,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
  *   len - the length of message
  *   data - pointer to the message
  */
+int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
 int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t *output, uint8_t rsa_mode);
 int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t mode);
 
