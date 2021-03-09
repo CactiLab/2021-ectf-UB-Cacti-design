@@ -32,7 +32,7 @@ char buf[SCEWL_MAX_DATA_SZ];
 //sequence number structure
 sequence_num_t messeage_sq[16];
 
-broadcast_sequence_num_t broadcast_rcv [16];
+broadcast_sequence_num_t broadcast_rcv[16];
 
 uint32_t broadcast_send_sequence = 0;
 
@@ -225,11 +225,7 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, s
   uint8_t index;
   if (target_SED == 0)
   {
-    //send_str("Received:");
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&received_sq_number);
     index = get_broadcast_sequence_numebr_index(source_SED);
-    //send_str("Stored:");
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&broadcast_rcv[index].rcv_sq);
     if (broadcast_rcv[index].rcv_sq < received_sq_number) {
       broadcast_rcv[index].rcv_sq  = received_sq_number;
       return true;
@@ -237,11 +233,7 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, s
   } 
   else 
   {
-    //send_str("targeted Received:");
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&received_sq_number);
     index = get_targeted_sequence_numebr_index(source_SED);
-    //send_str("targeted Stored:");
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&messeage_sq[index].sq_receive);
     if (messeage_sq[index].sq_receive < received_sq_number)
     {
       messeage_sq[index].sq_receive  = received_sq_number;
@@ -287,18 +279,13 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   scewl_msg.crypto_msg.padding = tmp;
   scewl_msg.padding = tmp;
   if (tgt_id == 0)
-  {
-    
+  { 
     scewl_msg.crypto_msg.sq = ++broadcast_send_sequence;
-    //send_str("SQ:");
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq); 
   }
   else 
   {
     index = get_targeted_sequence_numebr_index(tgt_id);
-    //send_str("SQ targeted :");
     scewl_msg.crypto_msg.sq = ++messeage_sq[index].sq_send; // setup the sequence number
-    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq); 
   }
   memcpy(scewl_msg.crypto_msg.body, data, len);            // setup the plaintext
 
