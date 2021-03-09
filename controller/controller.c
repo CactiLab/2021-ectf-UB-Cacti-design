@@ -50,15 +50,16 @@ void SysTick_Handler(void)
 
 int check_scewl_pk(scewl_id_t tgt_id)
 {
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < SCEWL_PK_NUM; i++)
   {
-    if ((memcmp(&scewl_pk[i].scewl_id, &tgt_id, sizeof(scewl_id_t)) == 0))
+    if (scewl_pk[i].scewl_id == tgt_id)
     {
       if (scewl_pk[i].flag == 1)
       {
 #ifdef DEBUG_PK_TEST
         send_str("tgt public key\n");
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)i);
+        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&i);
+        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&scewl_pk[i].flag);
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
@@ -75,7 +76,7 @@ int check_scewl_pk(scewl_id_t tgt_id)
 
 int print_scewl_pk()
 {
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < SCEWL_PK_NUM; i++)
   {
     if (scewl_pk[i].flag == 1)
     {
@@ -93,7 +94,7 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 {
   int len = 0, enc_len = 0, send_len = 0;
   int idx = 0;
-  char msg[200] = {0};
+  // char msg[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
   char output[200] = {0};
   scewl_id_t tmp_tgt, tmp_src;
   char *get_pk = "NO";
@@ -101,91 +102,91 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
   unsigned int start, end, delay;
   start = sysTimer;
 
-  // send_str("send_get_scewl_pk_msg: ask for target pk...\n");
-  // send_enc_msg(RAD_INTF, SCEWL_ID, tgt_id, 7, "get pk", RSA_REQ_PK);
+  send_str("send_get_scewl_pk_msg: ask for target pk...\n");
+  send_enc_msg(RAD_INTF, SCEWL_ID, tgt_id, 7, "get pk", RSA_REQ_PK);
   // ++messeage_sq.sq_send[tgt_id];
-  send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
+  return send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
 
   // server while registered
-  while (set_pk_flag == 0)
-  {
-    // handle outgoing message from CPU
-    if (intf_avail(CPU_INTF))
-    {
-      // Read message from CPU
-      len = read_msg(CPU_INTF, msg, &tmp_src, &tmp_tgt, sizeof(msg), 1);
+  // while (set_pk_flag == 0)
+  // {
+  //   // handle outgoing message from CPU
+  //   if (intf_avail(CPU_INTF))
+  //   {
+  //     // Read message from CPU
+  //     len = read_msg(CPU_INTF, msg, &tmp_src, &tmp_tgt, sizeof(msg), 1);
 
-      /*
-        If the outgoing message is for broadcast or targeted transmission, the CIA properties should be maintained.
-        No need to protect messages to SSS or FAA.
-        */
+  //     /*
+  //       If the outgoing message is for broadcast or targeted transmission, the CIA properties should be maintained.
+  //       No need to protect messages to SSS or FAA.
+  //       */
 
-      if (tmp_tgt == SCEWL_BRDCST_ID)
-      {
-        handle_brdcst_send(msg, len);
-      }
-      else if (tmp_tgt == SCEWL_FAA_ID)
-      {
-        handle_faa_send(msg, len);
-      }
-      else
-      {
-        handle_scewl_send(msg, tmp_tgt, len);
-      }
+  //     if (tmp_tgt == SCEWL_BRDCST_ID)
+  //     {
+  //       handle_brdcst_send(msg, len);
+  //     }
+  //     else if (tmp_tgt == SCEWL_FAA_ID)
+  //     {
+  //       handle_faa_send(msg, len);
+  //     }
+  //     else
+  //     {
+  //       handle_scewl_send(msg, tmp_tgt, len);
+  //     }
 
-      continue;
-    }
+  //     continue;
+  //   }
 
-    // handle incoming radio message
-    if (intf_avail(RAD_INTF))
-    {
-      // Read message from antenna
-      len = read_msg(RAD_INTF, msg, &tmp_src, &tmp_tgt, sizeof(msg), 1);
+  //   // handle incoming radio message
+  //   if (intf_avail(RAD_INTF))
+  //   {
+  //     // Read message from antenna
+  //     len = read_msg(RAD_INTF, msg, &tmp_src, &tmp_tgt, sizeof(msg), 1);
 
-      if (tmp_src != SCEWL_ID)
-      { // ignore our own outgoing messages
-        if (tmp_tgt == SCEWL_BRDCST_ID)
-        {
-          // receive broadcast message
-          // send_str("send_get_scewl_pk_msg: received the brdcst...\n");
-          handle_brdcst_recv(msg, tmp_src, len);
-        }
-        else if (tmp_tgt == SCEWL_ID)
-        {
-          // receive unicast message
-          if (tmp_src == SCEWL_FAA_ID)
-          {
-            // send_str("send_get_scewl_pk_msg: received the faa...\n");
-            handle_faa_recv(msg, len);
-          }
-          else
-          {
-            handle_scewl_recv(msg, tmp_src, len);
-            idx = check_scewl_pk(tgt_id);
-            if ((idx >= 0) && (idx != 0x55))
-            {
-              send_str("send_get_scewl_pk_msg: set tgt pk!");
-              send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-              // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[idx].pk);
-              // set_pk_flag = 1;
-              set_pk_flag = 0;
-              return SCEWL_OK;
-            }
-          }
-        }
-      }
-    }
+  //     if (tmp_src != SCEWL_ID)
+  //     { // ignore our own outgoing messages
+  //       if (tmp_tgt == SCEWL_BRDCST_ID)
+  //       {
+  //         // receive broadcast message
+  //         // send_str("send_get_scewl_pk_msg: received the brdcst...\n");
+  //         handle_brdcst_recv(msg, tmp_src, len);
+  //       }
+  //       else if (tmp_tgt == SCEWL_ID)
+  //       {
+  //         // receive unicast message
+  //         if (tmp_src == SCEWL_FAA_ID)
+  //         {
+  //           // send_str("send_get_scewl_pk_msg: received the faa...\n");
+  //           handle_faa_recv(msg, len);
+  //         }
+  //         else
+  //         {
+  //           handle_scewl_recv(msg, tmp_src, len);
+  //           idx = check_scewl_pk(tgt_id);
+  //           if ((idx >= 0) && (idx != 0x55))
+  //           {
+  //             send_str("send_get_scewl_pk_msg: set tgt pk!");
+  //             send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
+  //             // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[idx].pk);
+  //             // set_pk_flag = 1;
+  //             set_pk_flag = 0;
+  //             return SCEWL_OK;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
 
-    end = sysTimer;
-    delay = end - start;
-    if (delay > 600000)
-    {
-      send_str("send_get_scewl_pk_msg: get tgt pk timeout!");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-      set_pk_flag = 0;
-      return SCEWL_ERR;
-    }
-  }
+  //   end = sysTimer;
+  //   delay = end - start;
+  //   if (delay > 5000)
+  //   {
+  //     send_str("send_get_scewl_pk_msg: get tgt pk timeout!");
+  //     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
+  //     set_pk_flag = 0;
+  //     return SCEWL_ERR;
+  //   }
+  // }
 }
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -393,7 +394,6 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   {
     scewl_msg.magicP = 'N';
     scewl_msg.magicK = 'O';
-    send_str("sending rsa_re_pk...");
   }
   else
   {
@@ -630,7 +630,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   // send_str("received message, checking if it is for PK");
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, data);
 
-  if (memcmp(data, "NO", 2) == 0)
+  if ((data[0] == 'N') && (data[1] == 'O'))
   {
     // send_str("send_auth_msg: required public key");
     // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
@@ -642,27 +642,29 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
     // send_str("send_auth_msg: send out public key");
     return SCEWL_OK;
   }
-  else if (memcmp(data, "PK", 2) == 0)
+  else if ((data[0] == 'P') && (data[1] == 'K'))
   {
-    // send_str("send_auth_msg: update pk");
-
     if (check_scewl_pk(src_id) < 0)
     {
-      for (size_t i = 0; i < 16; i++)
+      for (size_t i = 0; i < SCEWL_PK_NUM; i++)
       {
         if (scewl_pk[i].flag == 0)
         {
+
+          // ++messeage_sq.sq_receive[tgt_id];
           memcpy(&scewl_update_pk, data, sizeof(scewl_update_pk_t));
           memcpy(&scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
           scewl_pk[i].scewl_id = src_id;
           scewl_pk[i].flag = 1;
+
+          send_str("send_auth_msg: update pk");
+          send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
 
           // configure the e
           BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
           //e=2^16+1
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-          scewl_pk[i].flag = 1;
 #ifdef PK_TEST
           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
@@ -680,7 +682,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
         }
       }
     }
-
     return SCEWL_OK;
   }
   else
@@ -889,11 +890,13 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
   {
     send_str("handle_scewl_send: does not have target public key");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-    if (send_get_scewl_pk_msg(tgt_id) == SCEWL_ERR)
-    {
-      // send_str("handle_scewl_send: get tgt pk timeout!");
-      return SCEWL_ERR;
-    }
+    send_get_scewl_pk_msg(tgt_id);
+    return SCEWL_ERR;
+    // if (send_get_scewl_pk_msg(tgt_id) == SCEWL_ERR)
+    // {
+    //   // send_str("handle_scewl_send: get tgt pk timeout!");
+    //   return SCEWL_ERR;
+    // }
     // return SCEWL_OK;
   }
 
@@ -907,13 +910,9 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
 
-  if (src_id == SCEWL_FAA_ID)
-  {
-    send_str("handle_brdcst_recv: receive faa brdcst!");
-    return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
-    // return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
-  }
-  else
+  // send_str("handle_brdcst_recv");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+  if (src_id != SCEWL_FAA_ID)
   {
     int ret = check_scewl_pk(src_id);
     if (ret == 0x55)
@@ -924,25 +923,30 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
     }
     else if (ret < 0)
     {
-      send_str("handle_brdcst_recv: does not have source public key");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-      // send_get_scewl_pk_msg(src_id);
-      if (send_get_scewl_pk_msg(src_id) == SCEWL_ERR)
-      {
-        // send_str("handle_scewl_send: get tgt pk timeout!");
-        return SCEWL_ERR;
-      }
-      // return SCEWL_OK;
-      else
-      {
-        return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
-      }
+      // send_str("handle_brdcst_recv: does not have source public key");
+      // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+      // ++messeage_sq.sq_receive[src_id];
+      send_get_scewl_pk_msg(src_id);
+      return SCEWL_ERR;
+      // if (send_get_scewl_pk_msg(src_id) == SCEWL_ERR)
+      // {
+      //   // send_str("handle_scewl_send: get tgt pk timeout!");
+      //   return SCEWL_ERR;
+      // }
+      // // return SCEWL_OK;
+      // else
+      // {
+      //   return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
+      // }
     }
     else
     {
       return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
     }
   }
+
+  send_str("handle_brdcst_recv: receive faa brdcst!");
+  return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #endif
@@ -978,6 +982,9 @@ int handle_registration(char *msg)
   {
     return sss_deregister();
   }
+
+  // bad op
+  return 0;
 }
 
 int sss_register()

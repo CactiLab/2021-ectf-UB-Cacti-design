@@ -58,7 +58,7 @@ int main(void) {
   fprintf(log, "Waiting for response...\n");
   scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
 
-  while (i< 20) { 
+  while (i< 10) { 
     
     scewl_send(TGT_ID, 13, msg);
 
