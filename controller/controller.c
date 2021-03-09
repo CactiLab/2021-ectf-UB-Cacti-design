@@ -935,8 +935,12 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
       // return SCEWL_OK;
       else
       {
-        send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
+        return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
       }
+    }
+    else
+    {
+      return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
     }
   }
 #else
