@@ -104,7 +104,7 @@ typedef struct scewl_msg_hdr_t
   uint16_t padding;
 } scewl_msg_hdr_t;
 
-typedef struct scewl_crypto_msg_hdr_t  // 12 bytes
+typedef struct scewl_crypto_msg_hdr_t // 12 bytes
 {
   scewl_id_t tgt_id;
   scewl_id_t src_id;
@@ -158,7 +158,7 @@ typedef struct scewl_sss_crypto_msg_t
   DTYPE padding[MAX_MODULUS_LENGTH - 4];
 } scewl_sss_crypto_msg_t;
 
-typedef struct scewl_pub_t  // 162+2+2+2=168
+typedef struct scewl_pub_t // 162+2+2+2=168
 {
   uint8_t flag;
   scewl_id_t scewl_id;
@@ -174,28 +174,6 @@ typedef struct scewl_update_pk_t
   uint8_t magicK;
   rsa_pk pk;
 } scewl_update_pk_t;
-
-typedef struct scewl_get_pk_t
-{
-  uint8_t magicP; // all messages must start with the magic code "PK"
-  // uint8_t magicU;
-  // uint8_t magicB; // all messages must start with the magic code "PUBK"
-  uint8_t magicK;
-  scewl_id_t src_id;
-  scewl_id_t tgt_id;
-  uint8_t msg[11];
-} scewl_get_pk_t;
-
-typedef struct scewl_rec_pk_hdr_t
-{
-  uint8_t magicP; // all messages must start with the magic code "PK"
-  // uint8_t magicU;
-  // uint8_t magicB; // all messages must start with the magic code "PUBK"
-  uint8_t magicK;
-  scewl_id_t src_id;
-  scewl_id_t tgt_id;
-  rsa_pk pk;
-} scewl_rec_pk_hdr_t;
 
 // SCEWL status codes
 enum scewl_status
@@ -228,15 +206,12 @@ enum rsa_mode
   RSA_SIGN,
   RSA_ENC,
   RSA_DEC,
-  RSA_UPDATE_PK,
   RSA_REQ_PK,
-  RSA_RECV_GET_PK,
   RSA_SEND_PK
 };
 
 int check_scewl_pk(scewl_id_t tgt_id);
-int check_scewl_pk_msg(char *data);
-int send_brdcst_get_pk_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data);
+int send_get_scewl_pk_msg(scewl_id_t tgt_id);
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
 int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
 

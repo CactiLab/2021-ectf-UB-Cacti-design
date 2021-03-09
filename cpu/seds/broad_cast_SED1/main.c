@@ -55,7 +55,7 @@ int main(void) {
   sleep(2);
   int i = 0;
   fw_SED = 0;
-  while (i< 20) { 
+  while (i< 10) { 
     #ifdef debug_message
     //fprintf(log, "Debug info.\n");
     //scewl_send(SCEWL_FAA_ID, sizeof("debug info"), "debug info");
