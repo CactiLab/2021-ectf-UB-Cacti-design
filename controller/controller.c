@@ -312,18 +312,17 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
   return 0;
 }
 
-bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number)
+bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, scewl_id_t target_SED)
 {
-  if (broad_cast_flag)
+  if (target_SED == 0)
   {
     source_SED = 0;
   }
-  if (messeage_sq.sq_receive[source_SED] <= received_sq_number)
+  if (messeage_sq.sq_receive[source_SED] < received_sq_number)
   {
     messeage_sq.sq_receive[source_SED] = received_sq_number;
     return true;
   }
-  broad_cast_flag = false;
   return false;
 }
 
@@ -566,7 +565,7 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
     return (-1);
   }
 
-  if (check_sequence_number(src_id, crypto_msg.sq))
+  if (check_sequence_number(src_id, crypto_msg.sq, tgt_id))
   {
     // send_str("Sequence numebr validation success");
   }
@@ -877,7 +876,6 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
 int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
-  broad_cast_flag = true;
 
   int ret = check_scewl_pk(src_id);
   if (ret == 0x55)

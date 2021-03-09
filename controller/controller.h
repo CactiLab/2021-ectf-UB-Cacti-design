@@ -79,7 +79,6 @@ typedef uint16_t scewl_id_t;
 // #define RSA_CRYPTO 1
 /******************************** end crypto ********************************/
 
-bool broad_cast_flag = false;
 // SCEWL bus channel header
 // NOTE: This is the required format to comply with Section 4.6 of the rules
 typedef struct scewl_hdr_t
@@ -343,5 +342,5 @@ int sss_register();
 int sss_deregister();
 
 /* Handle sequence number checking from*/
-bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number);
+bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, scewl_id_t target_SED);
 #endif
