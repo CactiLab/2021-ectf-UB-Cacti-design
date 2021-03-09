@@ -118,9 +118,17 @@ typedef struct scewl_msg_t
 // sequence number for each SED
 typedef struct sequence_num_t
 {
-  uint32_t sq_send[max_sequenced_SEDS];
-  uint32_t sq_receive[max_sequenced_SEDS];
+  uint16_t sed_id;
+  uint32_t sq_send;
+  uint32_t sq_receive;
 } sequence_num_t;
+
+typedef struct broadcast_sequence_num_t
+{
+  uint16_t sed_id;
+  uint32_t rcv_sq;
+}broadcast_sequence_num_t;
+
 
 // registration message
 typedef struct scewl_sss_msg_t

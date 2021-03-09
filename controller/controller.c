@@ -30,7 +30,11 @@ char int2char(uint8_t i)
 char buf[SCEWL_MAX_DATA_SZ];
 
 //sequence number structure
-sequence_num_t messeage_sq;
+sequence_num_t messeage_sq[16];
+
+broadcast_sequence_num_t broadcast_rcv [16];
+
+uint32_t broadcast_send_sequence = 0;
 
 volatile rsa_pk *own_pk = &public_key;
 volatile rsa_sk *own_sk = &private_key;
@@ -195,16 +199,54 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
   return 0;
 }
 
+uint8_t get_broadcast_sequence_numebr_index(scewl_id_t source_SED) {
+    for (int i = 0; i < 16; i++){
+      if (broadcast_rcv[i].sed_id == 0 || broadcast_rcv[i].sed_id == source_SED) {
+        broadcast_rcv[i].sed_id = source_SED;
+        return i;
+      }
+    }
+    return -1;
+}
+
+uint8_t get_targeted_sequence_numebr_index(scewl_id_t source_SED) {
+    for (int i = 0; i < 16; i++){
+      if (messeage_sq[i].sed_id == 0 || messeage_sq[i].sed_id == source_SED) {
+        messeage_sq[i].sed_id = source_SED;
+        return i;
+      }
+    }
+    return -1;
+}
+
+
 bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, scewl_id_t target_SED)
 {
+  uint8_t index;
   if (target_SED == 0)
   {
-    source_SED = 0;
-  }
-  if (messeage_sq.sq_receive[source_SED] < received_sq_number)
+    //send_str("Received:");
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&received_sq_number);
+    index = get_broadcast_sequence_numebr_index(source_SED);
+    //send_str("Stored:");
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&broadcast_rcv[index].rcv_sq);
+    if (broadcast_rcv[index].rcv_sq < received_sq_number) {
+      broadcast_rcv[index].rcv_sq  = received_sq_number;
+      return true;
+    }
+  } 
+  else 
   {
-    messeage_sq.sq_receive[source_SED] = received_sq_number;
-    return true;
+    //send_str("targeted Received:");
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&received_sq_number);
+    index = get_targeted_sequence_numebr_index(source_SED);
+    //send_str("targeted Stored:");
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&messeage_sq[index].sq_receive);
+    if (messeage_sq[index].sq_receive < received_sq_number)
+    {
+      messeage_sq[index].sq_receive  = received_sq_number;
+      return true;
+    }
   }
   return false;
 }
@@ -219,7 +261,7 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   uint8_t key[keyCryptoLen] = {0};
   uint8_t iv[ivLen] = {0};
   uint8_t tag[tagLen] = {0};
-  
+  uint8_t index = 0;
   scewl_msg_t scewl_msg;
   uint8_t ciphertext[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
 
@@ -246,10 +288,18 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   scewl_msg.padding = tmp;
   if (tgt_id == 0)
   {
-    messeage_sq.sq_send[tgt_id] = max(messeage_sq.sq_receive[tgt_id], messeage_sq.sq_send[tgt_id]);
-    messeage_sq.sq_receive[tgt_id] = messeage_sq.sq_send[tgt_id];
+    
+    scewl_msg.crypto_msg.sq = ++broadcast_send_sequence;
+    //send_str("SQ:");
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq); 
   }
-  scewl_msg.crypto_msg.sq = ++messeage_sq.sq_send[tgt_id]; // setup the sequence number
+  else 
+  {
+    index = get_targeted_sequence_numebr_index(tgt_id);
+    //send_str("SQ targeted :");
+    scewl_msg.crypto_msg.sq = ++messeage_sq[index].sq_send; // setup the sequence number
+    //send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 4, (char *)&scewl_msg.crypto_msg.sq); 
+  }
   memcpy(scewl_msg.crypto_msg.body, data, len);            // setup the plaintext
 
   // setup the scewl message
@@ -856,7 +906,8 @@ int main()
     return -1;
   }
   // intialize the sequence numbers to zero
-  memset(&messeage_sq, 0, sizeof(sequence_num_t));
+  memset(&messeage_sq, 0, 16 * sizeof(sequence_num_t));
+  memset(&broadcast_rcv, 0, 16 * sizeof(broadcast_sequence_num_t));
   memset(&scewl_pk, 0, sizeof(scewl_pub_t) * SCEWL_PK_NUM);
 
   // initialize interfaces
