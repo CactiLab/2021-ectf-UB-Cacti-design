@@ -40,7 +40,7 @@ volatile uint32_t sysTimer = 0;
 volatile set_pk_flag = 0;
 
 // an array to store all provisoned sed's public key
-volatile scewl_pub_t scewl_pk[SCEWL_PK_SIZE];
+volatile scewl_pub_t scewl_pk[SCEWL_PK_NUM];
 volatile scewl_id_t pre_scewl_id = 0;
 
 void SysTick_Handler(void)
@@ -98,12 +98,12 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
   scewl_id_t tmp_tgt, tmp_src;
   char *get_pk = "NO";
 
-  int start, end, delay;
+  unsigned int start, end, delay;
   start = sysTimer;
 
   // send_str("send_get_scewl_pk_msg: ask for target pk...\n");
   // send_enc_msg(RAD_INTF, SCEWL_ID, tgt_id, 7, "get pk", RSA_REQ_PK);
-  ++messeage_sq.sq_send[tgt_id];
+  // ++messeage_sq.sq_send[tgt_id];
   send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
 
   // server while registered
@@ -161,21 +161,30 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
           else
           {
             handle_scewl_recv(msg, tmp_src, len);
-            if ((check_scewl_pk(tgt_id) >= 0) && (check_scewl_pk(tgt_id) != 0x55))
+            idx = check_scewl_pk(tgt_id);
+            if ((idx >= 0) && (idx != 0x55))
             {
               send_str("send_get_scewl_pk_msg: set tgt pk!");
               send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-              set_pk_flag = 1;
+              // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[idx].pk);
+              // set_pk_flag = 1;
+              set_pk_flag = 0;
+              return SCEWL_OK;
             }
           }
         }
       }
     }
+    end = sysTimer;
+    delay = end - start;
+    if (delay > 600000)
+    {
+      send_str("send_get_scewl_pk_msg: get tgt pk timeout!");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
+      set_pk_flag = 0;
+      return SCEWL_ERR;
+    }
   }
-
-  set_pk_flag = 0;
-
-  return SCEWL_OK;
 }
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -454,6 +463,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
 {
   scewl_hdr_t hdr;
   int tmp = 0;
+  // char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
 
   tmp = (len + MSG_HDR + CRYPTO_HDR) % 4;
 
@@ -468,6 +478,10 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
 
   enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
+
+  // memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
+  // memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&send_scewl_msg, hdr.len);
+  // intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
 
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
@@ -561,6 +575,9 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   }
   else
   {
+    send_str("src_id:\n");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
     send_str("AES Authentication Failure!");
     return (-1);
   }
@@ -594,6 +611,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   uint8_t output[SCEWL_MAX_DATA_SZ]; //hdr.len
   scewl_msg_t *scewl_msg = (scewl_msg_t *)data;
   scewl_update_pk_t scewl_update_pk;
+  char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
 
   int ret = 0;
 
@@ -670,11 +688,17 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
 
   ret = auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
 
+  memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
+  memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&output, hdr.len);
+  intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
+
   // send header
-  intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
+  // intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // send body
-  intf_write(intf, (char *)&output, hdr.len);
+  // send_str("send_auth_msg: receive normal messages.");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, hdr.len, (char *)&output);
+  // intf_write(intf, (char *)&output, hdr.len);
 
   return SCEWL_OK;
 }
@@ -863,7 +887,11 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
   {
     send_str("handle_scewl_send: does not have target public key");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-    send_get_scewl_pk_msg(tgt_id);
+    if (send_get_scewl_pk_msg(tgt_id) == SCEWL_ERR)
+    {
+      // send_str("handle_scewl_send: get tgt pk timeout!");
+      return SCEWL_ERR;
+    }
     // return SCEWL_OK;
   }
 
@@ -888,7 +916,12 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
   {
     send_str("handle_brdcst_recv: does not have source public key");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-    send_get_scewl_pk_msg(src_id);
+    // send_get_scewl_pk_msg(src_id);
+    if (send_get_scewl_pk_msg(src_id) == SCEWL_ERR)
+    {
+      // send_str("handle_scewl_send: get tgt pk timeout!");
+      return SCEWL_ERR;
+    }
     // return SCEWL_OK;
   }
 
@@ -1103,7 +1136,7 @@ int main()
   // intialize the sequence numbers to zero
   memset(&messeage_sq, 0, sizeof(sequence_num_t));
 
-  memset(&scewl_pk, 0, sizeof(scewl_pub_t) * SCEWL_PK_SIZE);
+  memset(&scewl_pk, 0, sizeof(scewl_pub_t) * SCEWL_PK_NUM);
 
   // initialize interfaces
   intf_init(CPU_INTF);

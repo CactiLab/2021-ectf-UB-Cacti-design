@@ -36,7 +36,7 @@ typedef uint16_t scewl_id_t;
 #define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
 #define BLOCK_SIZE 16
 #define CRYPTO_SIZE 16
-#define SCEWL_PK_SIZE 22
+#define SCEWL_PK_NUM 22
 
 #define keyLen 32
 #define keyCryptoLen 64

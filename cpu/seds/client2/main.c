@@ -27,7 +27,7 @@ int main(void) {
   scewl_id_t src_id, tgt_id;
   uint16_t len;
   int i = 0;
-  char *msg = "hello world!";
+  char *msg = "hello world2!";
   char data[BUF_SZ];
 
   // open log file
@@ -52,7 +52,7 @@ int main(void) {
   }
 
   fprintf(log, "Sending hello...\n");
-  scewl_send(TGT_ID, 13, msg);
+  scewl_send(TGT_ID, 14, msg);
 
   // receive response (block until response received)
   fprintf(log, "Waiting for response...\n");
