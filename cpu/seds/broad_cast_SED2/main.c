@@ -35,7 +35,7 @@ int main(void) {
   FILE *log = stderr;
   // NOTE: you can write to a file inside the Docker container instead:
   // FILE *log = fopen("cpu.log", "a");
-  char *msg = "test sending1";
+  char *msg = "test sending2";
 
   // initialize SCEWL
   scewl_init();

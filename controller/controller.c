@@ -129,6 +129,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     if (idx < 0)
     {
       send_str("Key_enc: please get the target public key first!");
+      return SCEWL_ERR;
     }
     else
     {
@@ -144,7 +145,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     break;
   }
 
-  return 0;
+  return SCEWL_OK;
 }
 
 int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -245,7 +246,7 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, s
 
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *send_scewl_msg, uint8_t rsa_mode)
 {
-  int i = 0;
+  int i = 0, ret = 0;
   int tmp = (len + MSG_HDR + CRYPTO_HDR) % 4;
   int enc_len = len + tmp + CRYPTO_HDR; // plaintext data len + 10 bytes crypto_hdr
   int scewl_msg_body_len = MSG_HDR + enc_len; // crypto message: msg header + 4 bytes sequence number + body (data)
@@ -331,7 +332,12 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
   memcpy(&scewl_msg.crypto_msg, ciphertext, enc_len);
 
 #ifdef KEY_CRYPTO
-  key_enc(src_id, tgt_id, &scewl_msg, rsa_mode);
+  ret = key_enc(src_id, tgt_id, &scewl_msg, rsa_mode);
+  if (ret == SCEWL_ERR)
+  {
+    return SCEWL_ERR;
+  }
+  
 #endif
 
 #ifdef KEY_CRYPTO
@@ -348,7 +354,7 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t rsa_mode)
 {
   scewl_hdr_t hdr;
-  int tmp = 0;
+  int tmp = 0,ret = 0;
   // char tmp_buf[SCEWL_MAX_DATA_SZ + 8] = {0};
 
   tmp = (len + MSG_HDR + CRYPTO_HDR) % 4;
@@ -363,7 +369,12 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   scewl_msg_t send_scewl_msg;
   memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
 
-  enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
+  ret = enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
+  if (ret == SCEWL_ERR)
+  {
+    return SCEWL_ERR;
+  }
+  
 
   // memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
   // memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&send_scewl_msg, hdr.len);
