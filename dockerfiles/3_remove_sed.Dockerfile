@@ -16,5 +16,7 @@ ARG SCEWL_ID
 ##############################
 # This test is done
 RUN python3 create_secret ${SCEWL_ID}  delete_key
+RUN grep -w -n ${SCEWL_ID} /provisoned_list | cut -f1 -d ":" | xargs -I % sed -i '%d' /provisoned_list
+RUN rm -rf ${SCEWL_ID}
 
 ##############################
