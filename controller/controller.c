@@ -43,7 +43,6 @@ volatile uint32_t sysTimer = 0;
 
 // an array to store all provisoned sed's public key
 volatile scewl_pub_t scewl_pk[SCEWL_PK_NUM];
-volatile scewl_id_t pre_scewl_id = 0;
 
 void SysTick_Handler(void)
 {
@@ -521,12 +520,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
           //e=2^16+1
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-
-          if (pre_scewl_id != 0)
-          {
-            send_msg(RAD_INTF, SCEWL_ID, pre_scewl_id, sizeof(scewl_update_pk_t), data);
-          }
-
           i = 16;
         }
       }
@@ -802,34 +795,19 @@ int sss_register()
   memcpy(&totalSEDs, (char *)&buf + sizeof(scewl_sss_msg_t), 1);
 
   // loop to set scewl public key
-  if (totalSEDs == 0)
+
+  for (i = 0; i < totalSEDs; i++)
   {
-    // this sed is the first regitered one
-    pre_scewl_id = 0;
-  }
-  else
-  {
-    for (i = 0; i < totalSEDs; i++)
-    {
-      // current header(4) + totalSEDs(1) + (dev_id(2) + rsa_pk(162)) * totalSEDs
-      memcpy(&scewl_pk[i].scewl_id, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * i, sizeof(scewl_pub_t));
+    // current header(4) + totalSEDs(1) + (dev_id(2) + rsa_pk(162)) * totalSEDs
+    memcpy(&scewl_pk[i].scewl_id, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * i, sizeof(scewl_pub_t));
 
-      // configure the e
-      BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
-      //e=2^16+1
-      scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-      scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-      scewl_pk[i].flag = 1;
-      pos = i;
-    }
-    pre_scewl_id = scewl_pk[pos].scewl_id;
-
-    // pack broadcast header to notify the scewl that want the publik key
-    scewl_update_pk.magicP = 'P';
-    scewl_update_pk.magicK = 'K';
-    memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
-
-    send_msg(RAD_INTF, SCEWL_ID, pre_scewl_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+    // configure the e
+    BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+    //e=2^16+1
+    scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+    scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+    scewl_pk[i].flag = 1;
+    pos = i;
   }
 
   // notify CPU of response

@@ -43,8 +43,10 @@ COPY --from=sss /secrets/${SCEWL_ID}/key.h /sed/key.h
 # for testing, use the same key pairs
 #COPY --from=sss /secrets/10/key.h /sed/key.h   
 
-
 RUN make SCEWL_ID=${SCEWL_ID}
+
+# delete SCEWL key files
+RUN rm /sed/key.h
 
 # attached the key after the bin file, get the address of the key
 RUN mv /sed/gcc/controller.bin /controller

@@ -54,7 +54,7 @@ int main(void) {
   sleep(2);
   int i = 0;
   fw_SED = 0;
-  while (i< 1) { 
+  while (i< 10) { 
     
     arg2 = "test sending";
     #ifdef debug_message
