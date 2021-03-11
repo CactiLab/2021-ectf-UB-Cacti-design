@@ -25,11 +25,13 @@ def del_input(scewl_id):
     pub_path = "/secrets/" + str(scewl_id) + "/privateKey.txt"
     pri_path = "/secrets/" + str(scewl_id) + "/publicKey.txt"
     keyHeader_path = "/secrets/" + str(scewl_id) + "/key.h"
+    pub_raw_path = "/secrets/rsa/" + str(scewl_id) + "_publicKey"
     
-    if os.path.exists(pub_path) and os.path.exists(pri_path) and os.path.exists(keyHeader_path):
+    if os.path.exists(pub_path) and os.path.exists(pri_path) and os.path.exists(keyHeader_path) and os.path.exists(pub_raw_path):
         os.remove(pub_path)
         os.remove(pri_path)
         os.remove(keyHeader_path)
+        os.remove(pub_raw_path)
         print("success: deleted public, private key  and key headerfor id: ", scewl_id)
     else:
         print("failure: public and/or private key and/or Key header file does not exist for ", scewl_id)
