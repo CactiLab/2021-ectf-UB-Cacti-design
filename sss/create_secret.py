@@ -26,7 +26,7 @@ def del_input(scewl_id):
     pri_path = "/secrets/" + str(scewl_id) + "/publicKey.txt"
     keyHeader_path = "/secrets/" + str(scewl_id) + "/key.h"
     
-    if os.path.exists(pub_path) and os.path.exists(pri_path):
+    if os.path.exists(pub_path) and os.path.exists(pri_path) and os.path.exists(keyHeader_path):
         os.remove(pub_path)
         os.remove(pri_path)
         os.remove(keyHeader_path)
