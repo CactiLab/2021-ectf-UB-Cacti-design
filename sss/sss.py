@@ -55,7 +55,7 @@ class SSS:
         return rready if op == 'r' else wready
 
     def handle_transaction(self, csock: socket.SocketType):
-        logging.info('handling transaction')
+        print('handling transaction')
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
@@ -64,20 +64,16 @@ class SSS:
         while len(data) < 72:
             recvd = csock.recv(72 - len(data))
             data += recvd
-            logging.info(f'data len: {len(data)}')
             # check for closed connection
             if not recvd:
                 raise ConnectionResetError
 
-        logging.info(f'Received buffer: {repr(data)}')
+        print(f'Received buffer: {repr(data)}')
         #logging.info(f'Lenght of data: {len(data)}')
         _, target_id, src_id, _ = struct.unpack('<HHHH', data[:8])
-        logging.info(f'header target: {target_id} header src: {src_id}')
+        print(f'From header target: {target_id} From header src: {src_id}')
         
         data = data[8:]
-        logging.info(f'Received buffer: {repr(data)}')
-        #logging.info(f'Lenght of data: {len(data)}')
-        #logging.info(f'Lenght of data: {type(data)}')
         cipher_file_name = "rsa/" + str(src_id) + "_cipher"
         try:
             cipher_file = open(cipher_file_name, "wb")
@@ -94,7 +90,7 @@ class SSS:
         #logging.info(f'auth command: {auth_app_command}')
         print(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
-                logging.info(f'Registration Message  Decryption successful')
+                print(f'Registration Message  Decryption successful')
 
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
@@ -102,8 +98,7 @@ class SSS:
             decipher_data = file.read()
         d_data = struct.unpack('<32H', decipher_data)
 
-        logging.info(f'Received buffer length: {len(decipher_data)}')
-        logging.info(f'Received buffer: {repr(decipher_data)}')
+        print(f'Received buffer length: {len(decipher_data)}')
 
         os.remove(cipher_file_name)
         os.remove(decipher_file_name)
@@ -115,19 +110,17 @@ class SSS:
         op = d_op
 
         if d_target_id == target_id and d_src_id == src_id:
-            logging.info(f'LeGIT SED {d_dev_id}')
+            print(f'Legit SED {d_dev_id}')
             legit_SED_flag = True
             dev_id = d_dev_id
         else:
-            logging.info(f'In valid Reigstration for SED')
+            print(f'Invalid Reigstration for SED')
             dev_id = target_id
             #resp_op = ALREADY
-
-        logging.info(f'dev ID:{d_dev_id} op: {d_op} target: {d_target_id} src: {d_src_id}')
         
         if dev_id in provisionedList:
             provisioned_flag = True
-            logging.info(f'ID: {dev_id} beloings to provisioned list')
+            print(f'ID: {dev_id} belongs to provisioned list')
             #resp_op = ALREADY
         
         
@@ -137,7 +130,6 @@ class SSS:
             
             registered_sed_list = list(self.devs.keys())
             logging.info(f'List IDs{registered_sed_list}')
-            logging.info(f' TYpe IDs{type(registered_sed_list)}')
             already_registered_sed = len(registered_sed_list)
             # requesting repeat transaction
 
@@ -149,16 +141,18 @@ class SSS:
                 self.devs[dev_id] = Device(dev_id, op, csock)
                 resp_op = op
                 logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
-            logging.info(f'-----------DONE for {dev_id}------')
-            logging.info(f'changed Dev ID: {dev_id} response op{resp_op}')
+            print(f'-----------DONE for {dev_id}------')
             if (op == 0):
-                other_sed_pub = prepare_response(registered_sed_list)
+                if already_registered_sed > 5:
+                    already_registered_sed = 5
+                other_sed_pub = prepare_response(registered_sed_list, already_registered_sed)
                 logging.info(f'Public key : {other_sed_pub}')
                 logging.info(f'Public key length : {len(other_sed_pub)}')
                 message_length = len(other_sed_pub) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
+                #resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 5, dev_id, resp_op, already_registered_sed)
                 resp = resp + other_sed_pub
-                logging.info(f'Response : {resp}')
+                #logging.info(f'Response : {resp}')
             else:
                 resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
 
@@ -231,20 +225,26 @@ def preapred_provisioned_list():
 def get_publicKey(registed_SED_id):
     public_key_file_path = "rsa/" + str(registed_SED_id) + "_publicKey"
     logging.info(f'public_key_file_path {public_key_file_path}')
-
-    pub_key_file_data = open(public_key_file_path,"rb").read()
-    logging.info(f'public key for {registed_SED_id} is {repr(pub_key_file_data)}')
+    try:
+        pub_key_file_data = open(public_key_file_path,"rb").read()
+    except IOError:
+        print ("Could not open the public key file for :" + str(registed_SED_id))
 
     return pub_key_file_data
 
 # From the registered list preare the response with SED ID(2 byte) + public key(162 byte) for each previously reistered SED
-def prepare_response(registered_sed_list):
+def prepare_response(registered_sed_list, already_registered_sed):
+    print("Total registered SED: " + str( len(registered_sed_list) ))
     resp = b''
+    i = 0
     for registered_sed_id in registered_sed_list:
                 resp = resp + struct.pack('<H', registered_sed_id)
                 publicKey_data = get_publicKey(registered_sed_id)
                 resp = resp + publicKey_data
-                logging.info(f'len: {len(publicKey_data)}')
+                if i < already_registered_sed:
+                    break
+                i = i +1
+                #logging.info(f'len: {len(publicKey_data)}')
     return resp
 
 
