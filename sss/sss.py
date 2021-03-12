@@ -55,7 +55,7 @@ class SSS:
         return rready if op == 'r' else wready
 
     def handle_transaction(self, csock: socket.SocketType):
-        logging.debug('handling transaction')
+        logging.info('handling transaction')
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
@@ -79,7 +79,9 @@ class SSS:
         #logging.info(f'Lenght of data: {len(data)}')
         #logging.info(f'Lenght of data: {type(data)}')
         
-        cipher_file = open("rsa/cipher", "wb")
+        # try:
+            cipher_file = open("rsa/cipher", "wb")
+        # except 
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
         cipher_file.close()

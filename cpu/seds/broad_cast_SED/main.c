@@ -41,13 +41,13 @@ int main(void) {
 
   // register
   if (scewl_register() != SCEWL_OK) {
-    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    fprintf(log, "brdcst_SED: BAD REGISTRATION! Reregistering...\n");
     if (scewl_deregister() != SCEWL_OK) {
-      fprintf(log, "BAD DEREGISTRATION!\n");
+      fprintf(log, "brdcst_SED: BAD DEREGISTRATION!\n");
       return 1;
     }
     if (scewl_register() != SCEWL_OK) {
-      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      fprintf(log, "brdcst_SED: BAD REGISTRATION! CANNOT RECOVER\n");
       return 1;
     }
   }
@@ -68,22 +68,22 @@ int main(void) {
     scewl_send(fw_SED, 13, arg2);
 
     // receive response (block until response received)
-    fprintf(log, "Waiting for response...\n");
+    fprintf(log, "brdcst_SED: Waiting for response...\n");
     scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
 
     // check if response matches
     if (!strcmp(arg2, data)) {
       // decode and print flag
-      fprintf(log, "Received the ecoho messeage correctly!!!\n");
+      fprintf(log, "brdcst_SED: Received the ecoho messeage correctly!!!\n");
     } else {
-      fprintf(log, "Bad response!\n");
+      fprintf(log, "brdcst_SED: Bad response!\n");
     }
     i ++;
   }
   // deregister
-  fprintf(log, "Deregistering...\n");
+  fprintf(log, "brdcst_SED: Deregistering...\n");
   if (scewl_deregister() != SCEWL_OK) {
-    fprintf(log, "BAD DEREGISTRATION!\n");
+    fprintf(log, "brdcst_SED: BAD DEREGISTRATION!\n");
   }
-  fprintf(log, "Exiting...\n");
+  fprintf(log, "brdcst_SED: Exiting...\n");
 }

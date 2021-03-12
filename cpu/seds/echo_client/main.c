@@ -65,22 +65,22 @@ int main(void) {
 
   // register
   if (scewl_register() != SCEWL_OK) {
-    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    fprintf(log, "client: BAD REGISTRATION! Reregistering...\n");
     if (scewl_deregister() != SCEWL_OK) {
-      fprintf(log, "BAD DEREGISTRATION!\n");
+      fprintf(log, "client: BAD DEREGISTRATION!\n");
       return 1;
     }
     if (scewl_register() != SCEWL_OK) {
-      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      fprintf(log, "client: BAD REGISTRATION! CANNOT RECOVER\n");
       return 1;
     }
   }
 
-  fprintf(log, "Sending hello...\n");
+  fprintf(log, "client: Sending hello...\n");
   scewl_send(TGT_ID, 13, msg);
 
   // receive response (block until response received)
-  fprintf(log, "Waiting for response...\n");
+  fprintf(log, "client: Waiting for response...\n");
   scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
 
   // check if response matches
@@ -94,13 +94,13 @@ int main(void) {
     fprintf(log, "Congrats on booting the system! Press <enter> on the FAA transceiver to view your flag!\n");
     scewl_send(SCEWL_FAA_ID, strlen(flag), flag);
   } else {
-    fprintf(log, "Bad response!\n");
+    fprintf(log, "client: Bad response!\n");
   }
 
   // deregister
-  fprintf(log, "Deregistering...\n");
+  fprintf(log, "client: Deregistering...\n");
   if (scewl_deregister() != SCEWL_OK) {
-    fprintf(log, "BAD DEREGISTRATION!\n");
+    fprintf(log, "client: BAD DEREGISTRATION!\n");
   }
-  fprintf(log, "Exiting...\n");
+  fprintf(log, "client: Exiting...\n");
 }

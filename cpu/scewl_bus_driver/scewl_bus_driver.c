@@ -102,6 +102,7 @@ int scewl_deregister() {
   }
 
   // op should be DEREG on success
+  fprintf(logfp, "msg.op: %d\n", msg.op);
   if (msg.op == SCEWL_SSS_DEREG) {
     return SCEWL_OK;
   }
