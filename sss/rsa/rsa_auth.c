@@ -29,9 +29,8 @@ int main(int argc, char *argv[])
     char publickey[300] = {0};
     char plainmsg[MAX_MODULUS_LENGTH * 2 + 1];
 
-    char *m = "message.txt";
-    char *c = "rsa/cipher";
-    char *p = "rsa/decipher";
+    char cipher_file[100] = {0};
+    char decipher_file[100] = {0};
     char pub_file[100] = {0};
     char pri_file[100] = {0};
 
@@ -45,12 +44,8 @@ int main(int argc, char *argv[])
 
     sprintf(pub_file, "rsa/%s_publicKey", argv[1]);
     sprintf(pri_file, "%s_privateKey", argv[1]);
-
-    // sprintf(pub_file, "publicKey");
-    // sprintf(pri_file, "privateKey");
-
-    // printf("%s\n", pub_file);
-    // printf("%s\n", pri_file);
+    sprintf(cipher_file, "rsa/%s_cipher", argv[1]);
+    sprintf(decipher_file, "rsa/%s_decipher", argv[1]);
 
     FILE *fp;
 
@@ -72,11 +67,11 @@ int main(int argc, char *argv[])
     pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
     //read ciphertext from file
-    fp = fopen(c, "rb");
+    fp = fopen(cipher_file, "rb");
     if (fp == NULL)
     {
-        printf("Cannot open file %s\n", c);
-        return 0;
+        printf("Cannot open file %s\n", cipher_file);
+        return -1;
     }
     fread(cipher, sizeof(cipher), 1, fp);
     fclose(fp);
@@ -87,7 +82,13 @@ int main(int argc, char *argv[])
 
     //write plaintext into file
     hex_to_string(plainmsg, plaintext);
-    fp = fopen(p, "w");
+    fp = fopen(decipher_file, "wb");
+
+    if (fp == NULL)
+    {
+        printf("Cannot open file %s\n", decipher_file);
+        return -1;
+    }
     fwrite(plainmsg, 1, MAX_MODULUS_LENGTH * 2, fp);
     fclose(fp);
 
