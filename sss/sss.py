@@ -78,10 +78,12 @@ class SSS:
         logging.info(f'Received buffer: {repr(data)}')
         #logging.info(f'Lenght of data: {len(data)}')
         #logging.info(f'Lenght of data: {type(data)}')
-        
-        # try:
-            cipher_file = open("rsa/cipher", "wb")
-        # except 
+        cipher_file_name = "rsa/" + str(src_id) + "_cipher"
+        try:
+            cipher_file = open(cipher_file_name, "wb")
+        except IOError:
+            logging.info(f'Could not open Cipher file')
+
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
         cipher_file.close()
@@ -89,20 +91,22 @@ class SSS:
         auth_app_command = "./rsa/auth " + str(src_id)
 
         #logging.info(f'Calling auth application')
-        logging.info(f'auth command: {auth_app_command}')
+        #logging.info(f'auth command: {auth_app_command}')
+        print(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
-                logging.info(f'command successfully executed')
+                logging.info(f'Registration Message  Decryption successful')
 
         #decipher_data = open("rsa/decipher", "rb").read()
-        with open("rsa/decipher", mode='rb') as file:
+        decipher_file_name = "rsa/" + str(src_id) + "_decipher"
+        with open(decipher_file_name, mode='rb') as file:
             decipher_data = file.read()
         d_data = struct.unpack('<32H', decipher_data)
 
         logging.info(f'Received buffer length: {len(decipher_data)}')
         logging.info(f'Received buffer: {repr(decipher_data)}')
 
-        os.remove("rsa/decipher")
-        os.remove("rsa/cipher")
+        os.remove(cipher_file_name)
+        os.remove(decipher_file_name)
 
         d_dev_id = d_data[0]
         d_op = d_data[1]
