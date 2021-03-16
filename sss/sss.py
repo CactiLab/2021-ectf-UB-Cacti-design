@@ -78,7 +78,7 @@ class SSS:
         try:
             cipher_file = open(cipher_file_name, "wb")
         except IOError:
-            logging.info(f'Could not open Cipher file')
+            print(f'Could not open Cipher file')
 
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
@@ -89,9 +89,9 @@ class SSS:
         #logging.info(f'Calling auth application')
         #logging.info(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
-                print(f'==={src_id}=== Msg Decryption succeeds')
+            print(f'==={src_id}=== Msg Decryption succeeds')
         else:
-             print(f'==={src_id}=== Msg Decryption fails')
+            print(f'==={src_id}=== Msg Decryption fails')
 
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
@@ -126,8 +126,6 @@ class SSS:
         
         
         if (provisioned_flag and legit_SED_flag) :
-            logging.info(f'self.dev IDs{type(self.devs)}')
-            logging.info(f'self.dev IDs{type(self.devs)}')
             
             registered_sed_list = list(self.devs.keys())
             print(f'==={src_id}=== List IDs{registered_sed_list}')
@@ -136,17 +134,21 @@ class SSS:
 
             if dev_id in self.devs and self.devs[dev_id] == op:
                 resp_op = ALREADY
-                logging.info(f'==={src_id}=== already {"Registered" if op == REG else "Deregistered"}')
+                print(f'==={src_id}=== already {"Registered" if op == REG else "Deregistered"}')
             # record transaction
             else:
                 self.devs[dev_id] = Device(dev_id, op, csock)
                 resp_op = op
-                logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
+                print(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
 
             if (op == 0):
-                print("==={src_id}=== Registration Operation")
+                print('===' + str(src_id) + '=== Registration Operation')
+                logging.info(f'=== {src_id}=== Registration Operation')
                 if already_registered_sed > 5:
                     already_registered_sed = 5
+                
+                print('===' + str(src_id) + '===Total previously registered SED:' + str( len(registered_sed_list) ))
+                logging.info(f'==={src_id}=== Total previously registered SED:: {len(registered_sed_list)}')
                 other_sed_pub = prepare_response(registered_sed_list, already_registered_sed)
 
                 message_length = len(other_sed_pub) + 5
@@ -155,11 +157,12 @@ class SSS:
                 resp = resp + other_sed_pub
                 #logging.info(f'Response : {resp}')
             else:
-                print("==={src_id}=== De-registration Operation")
+                print('===' + str(src_id) + '=== De-registration Operation')
+                logging.info(f'=== {src_id}=== De-registration Operation')
                 resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
             print(f'-----------DONE for {dev_id}------')
             # send response
-            logging.debug(f'==={src_id}=== Sending response {repr(data)}')
+            print(f'Sending response {repr(data)}')
             csock.send(resp)
 
     def start(self):
@@ -226,7 +229,7 @@ def preapred_provisioned_list():
 #and return the values to the caller
 def get_publicKey(registed_SED_id):
     public_key_file_path = "rsa/" + str(registed_SED_id) + "_publicKey"
-    logging.info(f'public_key_file_path {public_key_file_path}')
+    #logging.info(f'public_key_file_path {public_key_file_path}')
     try:
         pub_key_file_data = open(public_key_file_path,"rb").read()
     except IOError:
@@ -236,7 +239,8 @@ def get_publicKey(registed_SED_id):
 
 # From the registered list preare the response with SED ID(2 byte) + public key(162 byte) for each previously reistered SED
 def prepare_response(registered_sed_list, already_registered_sed):
-    print("Total registered SED: " + str( len(registered_sed_list) ))
+    #print("Total registered SED: " + str( len(registered_sed_list) ))
+    #logging.info(f'Total registered SED: {len(registered_sed_list)}')
     resp = b''
     i = 0
     for registered_sed_id in registered_sed_list:
