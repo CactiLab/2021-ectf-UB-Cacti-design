@@ -24,7 +24,7 @@ SSS_ID = 1
 ### registration_tmp and deregistration_tmp test
 import rsa
 provisionedList = []
-dedicatedList = []
+current_registered_sed = []
 ### registration_tmp and deregistration_tmp test
 
 # mirroring scewl enum at scewl.c:4
@@ -78,7 +78,7 @@ class SSS:
         try:
             cipher_file = open(cipher_file_name, "wb")
         except IOError:
-            print(f'Could not open Cipher file')
+            print(f'==={src_id}=== Could not open Cipher file')
 
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
@@ -117,19 +117,19 @@ class SSS:
         else:
             print(f'==={src_id}=== Invalid Registration for SED')
             dev_id = target_id
+            return
             #resp_op = ALREADY
         
         if dev_id in provisionedList:
             provisioned_flag = True
-            print(f'==={src_id}=== {dev_id} belongs to provisioned list')
-            #resp_op = ALREADY
+            print(f'==={dev_id}=== Belongs to provisioned list')
+        else:
+            print(f'==={dev_id}=== Does not belog to provisioned list')
+            return
         
         
         if (provisioned_flag and legit_SED_flag) :
-            
-            registered_sed_list = list(self.devs.keys())
-            print(f'==={src_id}=== List IDs{registered_sed_list}')
-            already_registered_sed = len(registered_sed_list)
+
             # requesting repeat transaction
 
             if dev_id in self.devs and self.devs[dev_id] == op:
@@ -139,30 +139,37 @@ class SSS:
             else:
                 self.devs[dev_id] = Device(dev_id, op, csock)
                 resp_op = op
-                print(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
+                print(f'==={dev_id}==={"Registered" if op == REG else "Deregistered"}')
 
             if (op == 0):
+                #registered_sed_list = list(self.devs.keys())
+                #print(f'==={src_id}=== Registered List IDs{registered_sed_list}')
+                already_registered_sed = len(current_registered_sed)
                 print('===' + str(src_id) + '=== Registration Operation')
-                logging.info(f'=== {src_id}=== Registration Operation')
+                #logging.info(f'=== {src_id}=== Registration Operation')
                 if already_registered_sed > 5:
                     already_registered_sed = 5
                 
-                print('===' + str(src_id) + '===Total previously registered SED:' + str( len(registered_sed_list) ))
-                logging.info(f'==={src_id}=== Total previously registered SED:: {len(registered_sed_list)}')
-                other_sed_pub = prepare_response(registered_sed_list, already_registered_sed)
+                print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed))
+                print(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
+                #logging.info(f'==={src_id}=== Total previously registered SED:: {len(current_registered_sed)}')
+                #logging.info(f'==={src_id}=== Registered List IDs {current_registered_sed}')
+                other_sed_pub = prepare_response(current_registered_sed, already_registered_sed)
 
                 message_length = len(other_sed_pub) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
                 #resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 5, dev_id, resp_op, already_registered_sed)
                 resp = resp + other_sed_pub
+                current_registered_sed.append(dev_id)
                 #logging.info(f'Response : {resp}')
             else:
                 print('===' + str(src_id) + '=== De-registration Operation')
-                logging.info(f'=== {src_id}=== De-registration Operation')
+                #logging.info(f'==={src_id}=== De-registration Operation')
                 resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
-            print(f'-----------DONE for {dev_id}------')
+                current_registered_sed.remove(dev_id)
             # send response
             print(f'Sending response {repr(data)}')
+            print(f'-----------DONE for {dev_id}------')
             csock.send(resp)
 
     def start(self):
@@ -203,6 +210,7 @@ class SSS:
             
             for dev_id in old_ids:
                 del self.devs[dev_id]
+                #logging.info(f'{self.devs}')
 
 
 def parse_args():
@@ -222,7 +230,8 @@ def preapred_provisioned_list():
         for line in provisionedSEDLines:
             line.replace("\n","")
             provisionedList.append(int(line))
-        logging.info(f'Provisioned SEDS: {provisionedList}')
+        print(f'Provisioned SEDS: {provisionedList}')
+        #logging.info(f'Provisioned SEDS: {provisionedList}')
         provisionedFile.close()
 
 #For each SED there will be public key file in SSS container with the name SED_ID_publickey in /rsa folder here we just read the file
