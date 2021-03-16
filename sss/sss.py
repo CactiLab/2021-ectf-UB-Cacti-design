@@ -79,6 +79,7 @@ class SSS:
             cipher_file = open(cipher_file_name, "wb")
         except IOError:
             print(f'==={src_id}=== Could not open Cipher file')
+            return
 
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
@@ -101,6 +102,7 @@ class SSS:
                 decipher_data = file.read()
         except IOError:
             print(f'==={src_id}=== Failed to open decipher file to read')
+            return
         
         d_data = struct.unpack('<32H', decipher_data)
 
@@ -230,14 +232,18 @@ def parse_args():
 # The docker files to build the SSS and controller will create a (provisoned_list) file in SSS reading this file we check wheather
 #SED with registration request belongs to the provisioned list or not
 def preapred_provisioned_list():
+    try:
         provisionedFile = open("../provisoned_list", "r")
-        provisionedSEDLines = provisionedFile.readlines()
-        for line in provisionedSEDLines:
-            line.replace("\n","")
-            provisionedList.append(int(line))
-        print(f'Provisioned SEDS: {provisionedList}')
-        #logging.info(f'Provisioned SEDS: {provisionedList}')
-        provisionedFile.close()
+    except IOError:
+        print(f'Failed to Open Provisioned LIST file')
+        return
+    provisionedSEDLines = provisionedFile.readlines()
+    for line in provisionedSEDLines:
+        line.replace("\n","")
+        provisionedList.append(int(line))
+    print(f'Provisioned SEDS: {provisionedList}')
+    #logging.info(f'Provisioned SEDS: {provisionedList}')
+    provisionedFile.close()
 
 #For each SED there will be public key file in SSS container with the name SED_ID_publickey in /rsa folder here we just read the file
 #and return the values to the caller
@@ -248,13 +254,12 @@ def get_publicKey(registed_SED_id):
         pub_key_file_data = open(public_key_file_path,"rb").read()
     except IOError:
         print ("Could not open the public key file for :" + str(registed_SED_id))
-
+        return
     return pub_key_file_data
 
 # From the registered list preare the response with SED ID(2 byte) + public key(162 byte) for each previously reistered SED
 def prepare_response(registered_sed_list, already_registered_sed):
-    #print("Total registered SED: " + str( len(registered_sed_list) ))
-    #logging.info(f'Total registered SED: {len(registered_sed_list)}')
+    
     resp = b''
     i = 0
     for registered_sed_id in registered_sed_list:
