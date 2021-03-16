@@ -50,12 +50,12 @@ typedef uint16_t scewl_id_t;
 
 /******************************** start sss signature ********************************/
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-// #define DEBUG_PK_TEST 1
+#define DEBUG_PK_TEST 1
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/
 #define MSG_CRYPTO 1
-// #define DEBUG_MSG_CRYPTO 1
+#define DEBUG_MSG_CRYPTO 1
 // #define SQ_DEBUG 1
 #define KEY_CRYPTO 1
 
