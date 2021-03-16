@@ -55,7 +55,7 @@ class SSS:
         return rready if op == 'r' else wready
 
     def handle_transaction(self, csock: socket.SocketType):
-        print('\n\nhandling transaction')
+        print('\n\nIn function handle_transaction()')
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
@@ -68,10 +68,10 @@ class SSS:
             if not recvd:
                 raise ConnectionResetError
 
-        print(f'Received buffer: {repr(data)}')
+        print(f'Received msg: {repr(data)}')
         #logging.info(f'Lenght of data: {len(data)}')
         _, target_id, src_id, _ = struct.unpack('<HHHH', data[:8])
-        print(f'From header target: {target_id} From header src: {src_id}')
+        print(f'==={src_id}=== Target: {target_id}')
         
         data = data[8:]
         cipher_file_name = "rsa/" + str(src_id) + "_cipher"
@@ -88,9 +88,10 @@ class SSS:
 
         #logging.info(f'Calling auth application')
         #logging.info(f'auth command: {auth_app_command}')
-        print(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
-                print(f'Registration Message  Decryption successful')
+                print(f'==={src_id}=== Msg Decryption succeeds')
+        else:
+             print(f'==={src_id}=== Msg Decryption fails')
 
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
@@ -110,17 +111,17 @@ class SSS:
         op = d_op
 
         if d_target_id == target_id and d_src_id == src_id:
-            print(f'Legit SED {d_dev_id}')
+            print(f'==={src_id}=== IDs match')
             legit_SED_flag = True
             dev_id = d_dev_id
         else:
-            print(f'Invalid Registration for SED')
+            print(f'==={src_id}=== Invalid Registration for SED')
             dev_id = target_id
             #resp_op = ALREADY
         
         if dev_id in provisionedList:
             provisioned_flag = True
-            print(f'ID: {dev_id} belongs to provisioned list')
+            print(f'==={src_id}=== {dev_id} belongs to provisioned list')
             #resp_op = ALREADY
         
         
@@ -129,13 +130,13 @@ class SSS:
             logging.info(f'self.dev IDs{type(self.devs)}')
             
             registered_sed_list = list(self.devs.keys())
-            print(f'List IDs{registered_sed_list}')
+            print(f'==={src_id}=== List IDs{registered_sed_list}')
             already_registered_sed = len(registered_sed_list)
             # requesting repeat transaction
 
             if dev_id in self.devs and self.devs[dev_id] == op:
                 resp_op = ALREADY
-                logging.info(f'{dev_id}:already {"Registered" if op == REG else "Deregistered"}')
+                logging.info(f'==={src_id}=== already {"Registered" if op == REG else "Deregistered"}')
             # record transaction
             else:
                 self.devs[dev_id] = Device(dev_id, op, csock)
@@ -143,23 +144,22 @@ class SSS:
                 logging.info(f'{dev_id}:{"Registered" if op == REG else "Deregistered"}')
 
             if (op == 0):
-                print("Registration Operation")
+                print("==={src_id}=== Registration Operation")
                 if already_registered_sed > 5:
                     already_registered_sed = 5
                 other_sed_pub = prepare_response(registered_sed_list, already_registered_sed)
-                logging.info(f'Public key : {other_sed_pub}')
-                logging.info(f'Public key length : {len(other_sed_pub)}')
+
                 message_length = len(other_sed_pub) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
                 #resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 5, dev_id, resp_op, already_registered_sed)
                 resp = resp + other_sed_pub
                 #logging.info(f'Response : {resp}')
             else:
-                print("De-registration Operation")
+                print("==={src_id}=== De-registration Operation")
                 resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
             print(f'-----------DONE for {dev_id}------')
             # send response
-            logging.debug(f'Sending response {repr(data)}')
+            logging.debug(f'==={src_id}=== Sending response {repr(data)}')
             csock.send(resp)
 
     def start(self):
