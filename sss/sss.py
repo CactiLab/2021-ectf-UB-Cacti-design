@@ -92,11 +92,16 @@ class SSS:
             print(f'==={src_id}=== Msg Decryption succeeds')
         else:
             print(f'==={src_id}=== Msg Decryption fails')
+            return
 
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
-        with open(decipher_file_name, mode='rb') as file:
-            decipher_data = file.read()
+        try:
+            with open(decipher_file_name, mode='rb') as file:
+                decipher_data = file.read()
+        except IOError:
+            print(f'==={src_id}=== Failed to open decipher file to read')
+        
         d_data = struct.unpack('<32H', decipher_data)
 
         #print(f'Received buffer length: {len(decipher_data)}')
