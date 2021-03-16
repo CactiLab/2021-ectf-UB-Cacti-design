@@ -133,7 +133,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     idx = check_scewl_pk(tgt_id);
     if (idx < 0)
     {
-      send_str("Key_enc: please get the target public key first!");
+      // send_str("Key_enc: please get the target public key first!");
       return SCEWL_ERR;
     }
     else
@@ -168,8 +168,8 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
 
     if (idx < 0)
     {
-      send_str("Key_dec: does not have its public key!");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+      // send_str("Key_dec: does not have its public key!");
+      // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
       return SCEWL_ERR;
     }
     else
@@ -449,16 +449,16 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
     }
     else
     {
-      send_str("Integrity Authentication Failure!");
+      // send_str("Integrity Authentication Failure!");
       return SCEWL_ERR;
     }
   }
   else
   {
-    send_str("src_id:\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
-    send_str("AES Authentication Failure!");
+    // send_str("src_id:\n");
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
+    // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&crypto_msg.src_id);
+    // send_str("AES Authentication Failure!");
     return SCEWL_ERR;
   }
 
@@ -468,7 +468,7 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   }
   else
   {
-    send_str("Replay attack detected");
+    // send_str("Replay attack detected");
     return SCEWL_ERR;
   }
 
@@ -727,7 +727,7 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
       return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
     }
   }
-  send_str("handle_brdcst_recv: receive faa brdcst!");
+  // send_str("handle_brdcst_recv: receive faa brdcst!");
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
