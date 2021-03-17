@@ -30,7 +30,7 @@ export SC_RECVR_SOCK=sc_recvr.sock
 # create deployment
 make create_deployment
 make add_sed SED=echo_server SCEWL_ID=10 NAME=echo_server
-make add_sed SED=client1 SCEWL_ID=11 NAME=client1 CUSTOM='TGT_ID=10'
+make add_sed SED=broad_cast_SED1 SCEWL_ID=11 NAME=broad_cast_SED1
 # make add_sed SED=echo_client SCEWL_ID=11 NAME=echo_client CUSTOM='TGT_ID=10'
 #make add_sed SED=test_sed SCEWL_ID=12 NAME=test_sed
 # make add_sed SED=broad_cast_SED SCEWL_ID=12 NAME=broad_cast_SED
@@ -46,7 +46,7 @@ python3 tools/faa.py $SOCK_ROOT/$FAA_SOCK &
 make launch_sed_d NAME=echo_server SCEWL_ID=10
 
 sleep 1
-make launch_sed_d NAME=client1 SCEWL_ID=11
+make launch_sed_d NAME=broad_cast_SED1 SCEWL_ID=11
 
 #sleep 1
 #make launch_sed_d NAME=test_sed SCEWL_ID=12

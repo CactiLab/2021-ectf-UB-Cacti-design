@@ -66,8 +66,6 @@ int check_scewl_pk(scewl_id_t tgt_id)
 #ifdef DEBUG_PK_TEST
         send_str("tgt public key\n");
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&i);
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&scewl_pk[i].flag);
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
 #endif
@@ -82,6 +80,12 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 {
   char *get_pk = "NO";
   return send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
+}
+
+int send_get_scewl_pk_done_msg(scewl_id_t tgt_id)
+{
+  char *get_pk_done = "OK";
+  return send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk_done);
 }
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -513,9 +517,14 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
     scewl_update_pk.magicP = 'P';
     scewl_update_pk.magicK = 'K';
     memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+
+#ifdef DEBUG_PK_TEST
+    send_str("send_auth_msg: send pk");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+#endif
     send_msg(RAD_INTF, SCEWL_ID, src_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 
-    return SCEWL_OK;
+    ret = SCEWL_NO_MSG;
   }
   else if ((data[0] == 'P') && (data[1] == 'K'))
   {
@@ -535,24 +544,48 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
           //e=2^16+1
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
           scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-          i = 16;
 
 #ifdef DEBUG_PK_TEST
           send_str("send_auth_msg: set pk!");
           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
 #endif
+          i = SCEWL_PK_NUM;
+          send_get_scewl_pk_done_msg(src_id);
         }
       }
     }
-    return SCEWL_OK;
+    ret = SCEWL_NO_MSG;
+  }
+  else if ((data[0] == 'O') && (data[1] == 'K'))
+  {
+    // send_get_scewl_pk_done_msg(src_id);
+    ret = SCEWL_NO_MSG;
+  }
+  else
+  {
+    ret = auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
   }
 
-  ret = auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
-  if (ret == SCEWL_OK)
+  if (ret == SCEWL_NO_MSG)
+  {
+    hdr.len = 0;
+#ifdef DEBUG_PK_TEST
+    send_str("send_auth_msg: notify the cpu there is no msg!");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, (char *)&tmp_buf);
+#endif
+    intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
+    intf_write(intf, 0, hdr.len);
+    return SCEWL_OK;
+  }
+  else if (ret == SCEWL_OK)
   {
     memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
     memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&output, hdr.len);
+#ifdef DEBUG_PK_TEST
+    send_str("send_auth_msg: notify the cpu!");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, (char *)&tmp_buf);
+#endif
     intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
     return SCEWL_OK;
   }
@@ -699,6 +732,10 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
 int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
+#ifdef DEBUG_MSG_CRYPTO
+  send_str("handle_scewl_recv: receive msg");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, data);
+#endif
   return send_auth_msg(CPU_INTF, src_id, SCEWL_ID, len, data, RSA_DEC);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_ID, len, data);

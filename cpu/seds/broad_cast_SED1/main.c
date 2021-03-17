@@ -25,7 +25,8 @@
     *arg2 = strtok(NULL, " \r\n");
 }*/
 
-int main(void) {
+int main(void)
+{
   scewl_id_t src_id, tgt_id;
   uint16_t len;
   scewl_id_t fw_SED;
@@ -36,34 +37,32 @@ int main(void) {
   // NOTE: you can write to a file inside the Docker container instead:
   // FILE *log = fopen("cpu.log", "a");
   char *msg = "test sending1";
+  int i;
 
   // initialize SCEWL
   scewl_init();
 
-  // register
-  if (scewl_register() != SCEWL_OK) {
+  // register1
+  if (scewl_register() != SCEWL_OK)
+  {
     fprintf(log, "BAD REGISTRATION! Reregistering...\n");
-    if (scewl_deregister() != SCEWL_OK) {
+    if (scewl_deregister() != SCEWL_OK)
+    {
       fprintf(log, "BAD DEREGISTRATION!\n");
       return 1;
     }
-    if (scewl_register() != SCEWL_OK) {
+    if (scewl_register() != SCEWL_OK)
+    {
       fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
       return 1;
     }
   }
-  sleep(2);
-  int i = 0;
+  i = 0;
   fw_SED = 0;
-  while (i< 10) { 
-    #ifdef debug_message
-    //fprintf(log, "Debug info.\n");
-    //scewl_send(SCEWL_FAA_ID, sizeof("debug info"), "debug info");
-    //fprintf(log, "No issue in scwel command\n");
-    //scewl_send(SCEWL_FAA_ID,sizeof(cmd),cmd);
-    //scewl_send(SCEWL_FAA_ID,sizeof(arg1),arg1);
-    //scewl_send(SCEWL_FAA_ID,13,arg2);
-    #endif
+  while (i < 10)
+  {
+#ifdef debug_message
+#endif
     scewl_send(fw_SED, 14, msg);
 
     // receive response (block until response received)
@@ -71,17 +70,233 @@ int main(void) {
     scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
 
     // check if response matches
-    if (!strcmp(msg, data)) {
+    if (!strcmp(msg, data))
+    {
       // decode and print flag
       fprintf(log, "Received correct response!!!\n");
-    } else {
+    }
+    else
+    {
       fprintf(log, "Bad response!\n");
     }
-    i ++;
+    i++;
   }
-  // deregister
+  // deregister1
   fprintf(log, "Deregistering...\n");
-  if (scewl_deregister() != SCEWL_OK) {
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // register2
+  if (scewl_register() != SCEWL_OK)
+  {
+    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    if (scewl_deregister() != SCEWL_OK)
+    {
+      fprintf(log, "BAD DEREGISTRATION!\n");
+      return 1;
+    }
+    if (scewl_register() != SCEWL_OK)
+    {
+      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      return 1;
+    }
+  }
+  i = 0;
+  fw_SED = 0;
+  while (i < 10)
+  {
+#ifdef debug_message
+#endif
+    scewl_send(fw_SED, 14, msg);
+
+    // receive response (block until response received)
+    fprintf(log, "Waiting for response...\n");
+    scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
+
+    // check if response matches
+    if (!strcmp(msg, data))
+    {
+      // decode and print flag
+      fprintf(log, "Received correct response!!!\n");
+    }
+    else
+    {
+      fprintf(log, "Bad response!\n");
+    }
+    i++;
+  }
+  // deregister2
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // register3
+  if (scewl_register() != SCEWL_OK)
+  {
+    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    if (scewl_deregister() != SCEWL_OK)
+    {
+      fprintf(log, "BAD DEREGISTRATION!\n");
+      return 1;
+    }
+    if (scewl_register() != SCEWL_OK)
+    {
+      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      return 1;
+    }
+  }
+  i = 0;
+  fw_SED = 0;
+  while (i < 10)
+  {
+#ifdef debug_message
+#endif
+    scewl_send(fw_SED, 14, msg);
+
+    // receive response (block until response received)
+    fprintf(log, "Waiting for response...\n");
+    scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
+
+    // check if response matches
+    if (!strcmp(msg, data))
+    {
+      // decode and print flag
+      fprintf(log, "Received correct response!!!\n");
+    }
+    else
+    {
+      fprintf(log, "Bad response!\n");
+    }
+    i++;
+  }
+  // deregister3
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // register
+  if (scewl_register() != SCEWL_OK)
+  {
+    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    if (scewl_deregister() != SCEWL_OK)
+    {
+      fprintf(log, "BAD DEREGISTRATION!\n");
+      return 1;
+    }
+    if (scewl_register() != SCEWL_OK)
+    {
+      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      return 1;
+    }
+  }
+  i = 0;
+  fw_SED = 0;
+  while (i < 10)
+  {
+#ifdef debug_message
+#endif
+    scewl_send(fw_SED, 14, msg);
+
+    // receive response (block until response received)
+    fprintf(log, "Waiting for response...\n");
+    scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
+
+    // check if response matches
+    if (!strcmp(msg, data))
+    {
+      // decode and print flag
+      fprintf(log, "Received correct response!!!\n");
+    }
+    else
+    {
+      fprintf(log, "Bad response!\n");
+    }
+    i++;
+  }
+  // deregister4
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // register
+  if (scewl_register() != SCEWL_OK)
+  {
+    fprintf(log, "BAD REGISTRATION! Reregistering...\n");
+    if (scewl_deregister() != SCEWL_OK)
+    {
+      fprintf(log, "BAD DEREGISTRATION!\n");
+      return 1;
+    }
+    if (scewl_register() != SCEWL_OK)
+    {
+      fprintf(log, "BAD REGISTRATION! CANNOT RECOVER\n");
+      return 1;
+    }
+  }
+  i = 0;
+  fw_SED = 0;
+  while (i < 10)
+  {
+#ifdef debug_message
+#endif
+    scewl_send(fw_SED, 14, msg);
+
+    // receive response (block until response received)
+    fprintf(log, "Waiting for response...\n");
+    scewl_recv(data, &src_id, &tgt_id, BUF_SZ, 1);
+
+    // check if response matches
+    if (!strcmp(msg, data))
+    {
+      // decode and print flag
+      fprintf(log, "Received correct response!!!\n");
+    }
+    else
+    {
+      fprintf(log, "Bad response!\n");
+    }
+    i++;
+  }
+  // deregister4
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // deregister5
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // deregister6
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
+    fprintf(log, "BAD DEREGISTRATION!\n");
+  }
+  fprintf(log, "Exiting...\n");
+
+  // deregister7
+  fprintf(log, "Deregistering...\n");
+  if (scewl_deregister() != SCEWL_OK)
+  {
     fprintf(log, "BAD DEREGISTRATION!\n");
   }
   fprintf(log, "Exiting...\n");
