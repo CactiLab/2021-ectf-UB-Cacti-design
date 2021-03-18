@@ -30,9 +30,9 @@ char int2char(uint8_t i)
 char buf[SCEWL_MAX_DATA_SZ];
 
 //sequence number structure
-sequence_num_t messeage_sq[16];
+sequence_num_t messeage_sq[max_sequenced_SEDS];
 
-broadcast_sequence_num_t broadcast_rcv[16];
+broadcast_sequence_num_t broadcast_rcv[max_sequenced_SEDS];
 
 uint32_t broadcast_send_sequence = 0;
 
@@ -79,13 +79,81 @@ int check_scewl_pk(scewl_id_t tgt_id)
 int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 {
   char *get_pk = "NO";
-  return send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
-}
 
-int send_get_scewl_pk_done_msg(scewl_id_t tgt_id)
-{
-  char *get_pk_done = "OK";
-  return send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk_done);
+  send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
+
+  scewl_id_t tmp_src, tmp_tgt;
+  scewl_update_pk_t scewl_update_pk;
+
+  int len = 0, count = 0;
+
+  char tmp_buf[200] = {0};
+  memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
+
+  while (count < 5)
+  {
+    if (intf_avail(RAD_INTF))
+    {
+      // Read message from antenna
+      len = read_msg(RAD_INTF, tmp_buf, &tmp_src, &tmp_tgt, sizeof(tmp_buf), 1);
+      count++;
+
+      if (tmp_src != SCEWL_ID)
+      { // ignore our own outgoing messages
+
+        if (tmp_tgt == SCEWL_ID)
+        {
+          // receive unicast message
+          if (tmp_src == tgt_id)
+          {
+            if ((tmp_buf[0] == 'P') && (tmp_buf[1] == 'K'))
+            {
+              for (size_t i = 0; i < SCEWL_PK_NUM; i++)
+              {
+                if (scewl_pk[i].flag == 0)
+                {
+                  memcpy(&scewl_update_pk, tmp_buf, sizeof(scewl_update_pk_t));
+                  memcpy(&scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
+                  scewl_pk[i].scewl_id = tgt_id;
+                  scewl_pk[i].flag = 1;
+
+                  // configure the e
+                  BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+                  //e=2^16+1
+                  scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+                  scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+
+#ifdef DEBUG_PK_TEST
+                  send_str("send_get_scewl_pk_msg: set pk!");
+                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
+                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
+#endif
+                  i = SCEWL_PK_NUM;
+                  count = 10;
+                }
+              }
+            }
+          }
+          else if ((tmp_buf[0] == 'N') && (tmp_buf[1] == 'O'))
+          {
+#ifdef DEBUG_PK_TEST
+            send_str("send_auth_msg: receive pk requests");
+            send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tmp_src);
+#endif
+            scewl_update_pk.magicP = 'P';
+            scewl_update_pk.magicK = 'K';
+            memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+
+#ifdef DEBUG_PK_TEST
+            send_str("send_auth_msg: send pk");
+            send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+#endif
+            send_msg(RAD_INTF, SCEWL_ID, tmp_src, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+          }
+        }
+      }
+    }
+  }
 }
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -523,8 +591,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 #endif
     send_msg(RAD_INTF, SCEWL_ID, src_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
-
-    ret = SCEWL_NO_MSG;
+    return SCEWL_NO_MSG;
   }
   else if ((data[0] == 'P') && (data[1] == 'K'))
   {
@@ -551,45 +618,23 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
 #endif
           i = SCEWL_PK_NUM;
-          send_get_scewl_pk_done_msg(src_id);
+          // send_get_scewl_pk_done_msg(src_id);
         }
       }
     }
-    ret = SCEWL_NO_MSG;
-  }
-  else if ((data[0] == 'O') && (data[1] == 'K'))
-  {
-    // send_get_scewl_pk_done_msg(src_id);
-    ret = SCEWL_NO_MSG;
-  }
-  else
-  {
-    ret = auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
+    return SCEWL_NO_MSG;
   }
 
-  if (ret == SCEWL_NO_MSG)
-  {
-    hdr.len = 0;
+  ret = auth_msg(src_id, tgt_id, len, data, output, rsa_mode);
+
+  memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
+  memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&output, hdr.len);
 #ifdef DEBUG_PK_TEST
-    send_str("send_auth_msg: notify the cpu there is no msg!");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, (char *)&tmp_buf);
+  // send_str("send_auth_msg: notify the cpu!");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, (char *)&tmp_buf);
 #endif
-    intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
-    intf_write(intf, 0, hdr.len);
-    return SCEWL_OK;
-  }
-  else if (ret == SCEWL_OK)
-  {
-    memcpy(tmp_buf, (char *)&hdr, sizeof(scewl_hdr_t));
-    memcpy(tmp_buf + sizeof(scewl_hdr_t), (char *)&output, hdr.len);
-#ifdef DEBUG_PK_TEST
-    send_str("send_auth_msg: notify the cpu!");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, (char *)&tmp_buf);
-#endif
-    intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
-    return SCEWL_OK;
-  }
-  return SCEWL_ERR;
+  intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
+  return SCEWL_OK;
 }
 
 int send_sign_SSS_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint16_t op)
@@ -732,11 +777,45 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
 int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
+  int ret = 0;
+  scewl_id_t tmp_src, tmp_tgt;
 #ifdef DEBUG_MSG_CRYPTO
   send_str("handle_scewl_recv: receive msg");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, data);
 #endif
-  return send_auth_msg(CPU_INTF, src_id, SCEWL_ID, len, data, RSA_DEC);
+  ret = send_auth_msg(CPU_INTF, src_id, SCEWL_ID, len, data, RSA_DEC);
+  if (ret == SCEWL_NO_MSG)
+  {
+    // handle incoming radio message
+    if (intf_avail(RAD_INTF))
+    {
+      // Read message from antenna
+      len = read_msg(RAD_INTF, buf, &tmp_src, &tmp_tgt, sizeof(buf), 1);
+
+      if (tmp_src != SCEWL_ID)
+      { // ignore our own outgoing messages
+        if (tmp_tgt == SCEWL_BRDCST_ID)
+        {
+          // receive broadcast message
+          return handle_brdcst_recv(buf, tmp_src, len);
+        }
+        else if (tmp_tgt == SCEWL_ID)
+        {
+          // receive unicast message
+          if (tmp_src == SCEWL_FAA_ID)
+          {
+            return handle_faa_recv(buf, len);
+          }
+          else
+          {
+            return handle_scewl_recv(buf, tmp_src, len);
+          }
+        }
+      }
+    }
+  }
+  return ret;
+
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_ID, len, data);
 #endif
@@ -745,16 +824,20 @@ int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
 int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
-  int ret = check_scewl_pk(tgt_id);
-  if (ret < 0)
+  if (check_scewl_pk(tgt_id) < 0)
   {
 #ifdef DEBUG_PK_TEST
     send_str("handle_scewl_send: pk requests");
 #endif
     send_get_scewl_pk_msg(tgt_id);
-    return SCEWL_ERR;
+    if (check_scewl_pk(tgt_id) < 0)
+    {
+#ifdef DEBUG_PK_TEST
+      send_str("handle_scewl_send: Does not have tgt pk!");
+#endif
+      return SCEWL_ERR;
+    }
   }
-
   return send_enc_msg(RAD_INTF, SCEWL_ID, tgt_id, len, data, RSA_ENC);
 #else
   return send_msg(RAD_INTF, SCEWL_ID, tgt_id, len, data);
@@ -766,18 +849,20 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 #ifdef MSG_CRYPTO
   if (src_id != SCEWL_FAA_ID)
   {
-    int ret = check_scewl_pk(src_id);
-    if (ret < 0)
+    if (check_scewl_pk(src_id) < 0)
     {
       send_get_scewl_pk_msg(src_id);
-      return SCEWL_ERR;
+      if (check_scewl_pk(src_id) < 0)
+      {
+#ifdef DEBUG_PK_TEST
+        send_str("handle_brdcst_recv: Does not have tgt pk!");
+#endif
+        return SCEWL_ERR;
+      }
     }
-    else
-    {
-      return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
-    }
+    return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
   }
-  // send_str("handle_brdcst_recv: receive faa brdcst!");
+
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
@@ -912,16 +997,15 @@ int sss_deregister()
   // receive response
   len = read_msg(SSS_INTF, (char *)&msg, &src_id, &tgt_id, sizeof(scewl_sss_msg_t), 1);
 
-  // send_str("deregister response:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_sss_msg_t), (char *)&msg);
-
   // notify CPU of response
   status = send_msg(CPU_INTF, src_id, tgt_id, sizeof(scewl_sss_msg_t), (char *)&msg);
 
-  // send_str("deregister response:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_sss_msg_t), (char *)&msg);
-  // send_str("deregister response:\n");
-  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&status);
+#ifdef DEBUG_REG
+  send_str("deregister response:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_sss_msg_t), (char *)&msg);
+  send_str("deregister response:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&status);
+#endif
 
   if (status == SCEWL_ERR)
   {
