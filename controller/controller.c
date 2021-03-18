@@ -87,7 +87,7 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 
   int len = 0, count = 0;
 
-  char tmp_buf[200] = {0};
+  char tmp_buf[SCEWL_MAX_DATA_SZ] = {0};
   memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
 
   while (count < 5)
