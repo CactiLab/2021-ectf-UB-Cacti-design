@@ -96,7 +96,6 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
     {
       // Read message from antenna
       len = read_msg(RAD_INTF, tmp_buf, &tmp_src, &tmp_tgt, sizeof(tmp_buf), 1);
-      count++;
 
       if (tmp_src != SCEWL_ID)
       { // ignore our own outgoing messages
@@ -106,6 +105,7 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
           // receive unicast message
           if (tmp_src == tgt_id)
           {
+            count++;
             if ((tmp_buf[0] == 'P') && (tmp_buf[1] == 'K'))
             {
               for (size_t i = 0; i < SCEWL_PK_NUM; i++)
@@ -860,6 +860,8 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
         return SCEWL_ERR;
       }
     }
+    send_str("handle_brdcst_recv: Auth the brdcst from target!");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, src_id);
     return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
   }
 

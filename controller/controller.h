@@ -19,8 +19,8 @@
 //#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4000 + 108 //max data size + data verify header
-#define SCEWL_MAX_DATA_SZ 0x4000             //max data size
+#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4002 + 108 //max data size + data verify header
+#define SCEWL_MAX_DATA_SZ 0x4002             //max data size
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 30
 // type of a SCEWL ID
@@ -50,8 +50,8 @@ typedef uint16_t scewl_id_t;
 
 /******************************** start sss signature ********************************/
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-// #define DEBUG_PK_TEST 1
-// #define DEBUG_REG 1
+#define DEBUG_PK_TEST 1
+#define DEBUG_REG 1
 /******************************** start sss signature ********************************/
 
 /******************************** start crypto ********************************/

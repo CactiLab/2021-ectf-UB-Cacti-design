@@ -76,9 +76,9 @@ int main(int argc, char *argv[])
     fread(cipher, sizeof(cipher), 1, fp);
     fclose(fp);
 
-    printf("%s: Decryption starts...\n", argv[1]);
+    // printf("%s: Decryption starts...\n", argv[1]);
     rsa_encrypt(plaintext, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, &pk);
-    printf("%s: Decryption done...\n\n", argv[1]);
+    // printf("%s: Decryption done...\n\n", argv[1]);
 
     //write plaintext into file
     hex_to_string(plainmsg, plaintext);
