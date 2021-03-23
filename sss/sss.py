@@ -66,6 +66,7 @@ class SSS:
             data += recvd
             # check for closed connection
             if not recvd:
+                print('Connection Reset Error')
                 raise ConnectionResetError
 
         print(f'Received msg: {repr(data)}')
@@ -154,13 +155,15 @@ class SSS:
                 already_registered_sed = len(current_registered_sed)
                 print('===' + str(src_id) + '=== Registration Operation')
                 #logging.info(f'=== {src_id}=== Registration Operation')
+                print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed))
+                print(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
                 if already_registered_sed > 5:
                     already_registered_sed = 5
                 
-                print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed))
-                print(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
-                #logging.info(f'==={src_id}=== Total previously registered SED:: {len(current_registered_sed)}')
-                #logging.info(f'==={src_id}=== Registered List IDs {current_registered_sed}')
+                print('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
+                print(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
+                #logging.info('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
+                #logging.info(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
                 other_sed_pub = prepare_response(current_registered_sed, already_registered_sed)
 
                 message_length = len(other_sed_pub) + 5
