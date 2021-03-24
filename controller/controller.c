@@ -27,7 +27,7 @@ char int2char(uint8_t i)
 #endif
 
 // message buffer
-char buf[SCEWL_MAX_DATA_SZ];
+char buf[SCEWL_MAX_CRYPTO_DATA_SZ];
 
 //sequence number structure
 sequence_num_t messeage_sq[max_sequenced_SEDS];
@@ -87,7 +87,7 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 
   int len = 0, count = 0;
 
-  char tmp_buf[SCEWL_MAX_DATA_SZ] = {0};
+  char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
   memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
 
   while (count < 5)
@@ -398,7 +398,8 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 #endif
 
 #ifdef DEBUG_MSG_CRYPTO
-
+  send_str("data:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
   send_str("plaintext:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)&scewl_msg.crypto_msg.body);
   send_str("key:\n");
@@ -517,11 +518,15 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
   {
     if ((crypto_msg.src_id == src_id) && (crypto_msg.tgt_id == tgt_id) && (crypto_msg.len == len) && (crypto_msg.padding == scewl_msg->padding))
     {
-      // send_str("Authentication Success!\n");
+#ifdef DEBUG_MSG_CRYPTO
+      send_str("Authentication Success!\n");
+#endif
     }
     else
     {
-      // send_str("Integrity Authentication Failure!");
+#ifdef DEBUG_MSG_CRYPTO
+      send_str("Integrity Authentication Failure!");
+#endif
       return SCEWL_ERR;
     }
   }
@@ -536,11 +541,15 @@ int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uin
 
   if (check_sequence_number(src_id, crypto_msg.sq, tgt_id))
   {
-    // send_str("Sequence numebr validation success");
+#ifdef DEBUG_MSG_CRYPTO
+    send_str("Sequence numebr validation success");
+#endif
   }
   else
   {
-    // send_str("Replay attack detected");
+#ifdef DEBUG_MSG_CRYPTO
+    send_str("Replay attack detected");
+#endif
     return SCEWL_ERR;
   }
 
@@ -860,8 +869,10 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
         return SCEWL_ERR;
       }
     }
+#ifdef DEBUG_MSG_CRYPTO
     send_str("handle_brdcst_recv: Auth the brdcst from target!");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, src_id);
+#endif
     return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
   }
 
