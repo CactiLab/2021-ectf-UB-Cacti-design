@@ -19,8 +19,9 @@
 //#include <stdio.h>
 #include <math.h>
 #include <stdbool.h>
-#define SCEWL_MAX_CRYPTO_DATA_SZ 0x4002 + 108 //max data size + data verify header
-#define SCEWL_MAX_DATA_SZ 0x4002             //max data size
+
+#define SCEWL_MAX_DATA_SZ 0x4000             //max data size
+
 // change this value when want change max SEDs
 #define max_sequenced_SEDS 30
 // type of a SCEWL ID
@@ -42,8 +43,8 @@ typedef uint16_t scewl_id_t;
 #define tagLen 16
 #define RSA_BLOCK 64
 
-#define CRYPTO_HDR 12
-#define MSG_HDR 96
+// #define CRYPTO_HDR 12
+// #define MSG_HDR 96
 
 /******************************** start sss signature ********************************/
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
@@ -62,7 +63,7 @@ typedef uint16_t scewl_id_t;
 
 // SCEWL bus channel header
 // NOTE: This is the required format to comply with Section 4.6 of the rules
-typedef struct scewl_hdr_t
+typedef struct __attribute__((packed))
 {
   uint8_t magicS; // all messages must start with the magic code "SC"
   uint8_t magicC;
@@ -73,56 +74,40 @@ typedef struct scewl_hdr_t
 } scewl_hdr_t;
 
 // message format: | scewl_header | AENCpk(ka) | IV | tag | ENC(ka, iva)(header + message) |
-// size: magicPK keyLen + ivLen + tagLen + crypto_bodyLen = 2 + 64 + 12 + 16 +2 = 96
-typedef struct scewl_msg_hdr_t
-{
-  uint8_t magicP; // magic code "PK"
-  uint8_t magicK;
-  uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
-  uint8_t iv[ivLen];             //
-  uint8_t tag[tagLen];
-  uint16_t padding;
-} scewl_msg_hdr_t;
 
-typedef struct scewl_crypto_msg_hdr_t // 12 bytes
+typedef struct __attribute__((packed)) // 2 + 2 + 2 + 4 + 2 = 12, 12 + 0x4000 = 16396
 {
   scewl_id_t tgt_id;
   scewl_id_t src_id;
   uint16_t len;
   uint32_t sq;
-  uint16_t padding;
-} scewl_crypto_msg_hdr_t;
-
-typedef struct scewl_crypto_msg_t
-{
-  scewl_id_t tgt_id;
-  scewl_id_t src_id;
-  uint16_t len;
-  uint32_t sq;
-  uint16_t padding;
+  uint16_t padding_size;
   uint8_t body[SCEWL_MAX_DATA_SZ];
 } scewl_crypto_msg_t;
 
-typedef struct scewl_msg_t
+// size: magicPK keyLen + ivLen + tagLen + crypto_bodyLen = 
+// 2 + 64 + 12 + 16 + 2 = 96      96 + 12 + 0x4000 = 16492
+
+typedef struct __attribute__((packed))  
 {
   uint8_t magicP; // magic code "PK"
   uint8_t magicK;
   uint8_t aes_key[keyCryptoLen]; // asymmetric encrypted aes key
   uint8_t iv[ivLen];             //
   uint8_t tag[tagLen];
-  uint16_t padding;
+  uint16_t padding_size;
   scewl_crypto_msg_t crypto_msg;
 } scewl_msg_t;
 
 // sequence number for each SED
-typedef struct sequence_num_t
+typedef struct __attribute__((packed))
 {
   uint16_t sed_id;
   uint32_t sq_send;
   uint32_t sq_receive;
 } sequence_num_t;
 
-typedef struct broadcast_sequence_num_t
+typedef struct __attribute__((packed))
 {
   uint16_t sed_id;
   uint32_t rcv_sq;
@@ -130,14 +115,14 @@ typedef struct broadcast_sequence_num_t
 
 
 // registration message
-typedef struct scewl_sss_msg_t
+typedef struct __attribute__((packed))
 {
   scewl_id_t dev_id;
   uint16_t op;
 } scewl_sss_msg_t;
 
 // crypto message body should be padded to 64 bytes.
-typedef struct scewl_sss_crypto_msg_t
+typedef struct __attribute__((packed))
 {
   scewl_id_t dev_id;
   uint16_t op;
@@ -146,7 +131,7 @@ typedef struct scewl_sss_crypto_msg_t
   DTYPE padding[MAX_MODULUS_LENGTH - 4];
 } scewl_sss_crypto_msg_t;
 
-typedef struct scewl_pub_t // 162+2+2+2=168
+typedef struct __attribute__((packed)) // 162+2+2+2=168
 {
   uint8_t flag;
   scewl_id_t scewl_id;
@@ -154,7 +139,7 @@ typedef struct scewl_pub_t // 162+2+2+2=168
   uint8_t padding[3];
 } scewl_pub_t;
 
-typedef struct scewl_update_pk_t
+typedef struct __attribute__((packed))
 {
   uint8_t magicP; // all messages must start with the magic code "PK"
   uint8_t magicK;
@@ -196,6 +181,10 @@ enum rsa_mode
   RSA_SEND_PK
 };
 
+#define CRYPTO_HDR_SZ (sizeof(scewl_crypto_msg_t) - SCEWL_MAX_DATA_SZ)
+#define MSG_HDR_SZ (sizeof(scewl_msg_t) - sizeof(scewl_crypto_msg_t))
+#define SEND_MSG_HDR_SZ (CRYPTO_HDR_SZ + MSG_HDR_SZ)
+#define SCEWL_MAX_CRYPTO_DATA_SZ (SCEWL_MAX_DATA_SZ + SEND_MSG_HDR_SZ) //max data size + data verify header
 
 /*
  * check_scewl_pk
@@ -237,7 +226,7 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
  *   data - pointer to the message
  */
 int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode);
-int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t *output, uint8_t rsa_mode);
+int auth_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, scewl_msg_t *data, scewl_msg_t *output, uint8_t rsa_mode);
 int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t mode);
 
 /*
