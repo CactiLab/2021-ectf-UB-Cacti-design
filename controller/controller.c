@@ -63,12 +63,12 @@ int check_scewl_pk(scewl_id_t tgt_id)
         scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
         scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
-#ifdef DEBUG_PK_TEST
-        send_str("tgt public key\n");
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&i);
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
-#endif
+        // #ifdef DEBUG_PK_TEST
+        //         send_str("find tgt public key\n");
+        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&i);
+        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
+        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
+        // #endif
         return i;
       }
     }
@@ -76,11 +76,40 @@ int check_scewl_pk(scewl_id_t tgt_id)
   return -1;
 }
 
+void send_pk(scewl_id_t tgt_id)
+{
+  scewl_update_pk_t scewl_update_pk;
+  memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
+
+  scewl_update_pk.magicP = 'P';
+  scewl_update_pk.magicK = 'K';
+  memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+}
+
+void brdcst_own_pk()
+{
+  scewl_update_pk_t scewl_update_pk;
+  memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
+
+  scewl_update_pk.magicP = 'P';
+  scewl_update_pk.magicK = 'K';
+  memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+
+#ifdef DEBUG_PK_TEST
+  send_str("brdcst_own_pk:\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+#endif
+
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+}
+
 int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 {
   char *get_pk = "NO";
 
-  send_msg(RAD_INTF, SCEWL_ID, tgt_id, 3, get_pk);
+  send_msg(RAD_INTF, SCEWL_ID, tgt_id, strlen(get_pk), get_pk);
 
   scewl_id_t tmp_src, tmp_tgt;
   scewl_update_pk_t scewl_update_pk;
@@ -913,6 +942,34 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 #ifdef MSG_CRYPTO
   if (src_id != SCEWL_FAA_ID)
   {
+    if ((data[0] == 'P') && (data[1] == 'K'))
+    {
+#ifdef DEBUG_PK_TEST
+      send_str("handle_brdcst_recv: receive the pk brdcst!\n");
+      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
+#endif
+      if (check_scewl_pk(src_id) < 0)
+      {
+        for (size_t i = 0; i < SCEWL_PK_NUM; i++)
+        {
+          if (scewl_pk[i].flag == 0)
+          {
+            memcpy(&scewl_pk[i].pk, data + 2, sizeof(rsa_pk));
+            scewl_pk[i].scewl_id = src_id;
+            scewl_pk[i].flag = 1;
+
+            // configure the e
+            BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+            //e=2^16+1
+            scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+            scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+
+            i = SCEWL_PK_NUM;
+          }
+        }
+      }
+    }
+
     if (check_scewl_pk(src_id) < 0)
     {
       send_get_scewl_pk_msg(src_id);
@@ -931,6 +988,7 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
     return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
   }
 
+  // if it is a faa brdcst
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
 #else
   return send_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data);
@@ -1019,12 +1077,14 @@ int sss_register()
     pos = i;
   }
 
+  brdcst_own_pk();
+
   // notify CPU of response
   status = send_msg(CPU_INTF, src_id, tgt_id, sizeof(scewl_sss_msg_t), (char *)&msg);
 
   if (status == SCEWL_ERR)
   {
-    return 0;
+    return SCEWL_ERR;
   }
 
   // op should be REG on success
