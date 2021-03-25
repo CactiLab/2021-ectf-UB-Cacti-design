@@ -157,8 +157,9 @@ class SSS:
                 #logging.info(f'=== {src_id}=== Registration Operation')
                 print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed))
                 print(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
-                if already_registered_sed > 5:
-                    already_registered_sed = 5
+                #logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
+                #if already_registered_sed > 5:
+                    #already_registered_sed = 5
                 
                 print('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
                 print(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
@@ -262,17 +263,18 @@ def get_publicKey(registed_SED_id):
 
 # From the registered list preare the response with SED ID(2 byte) + public key(162 byte) for each previously reistered SED
 def prepare_response(registered_sed_list, already_registered_sed):
-    
+    #logging.info(f'Registered SED list { registered_sed_list}')
     resp = b''
     i = 0
     for registered_sed_id in registered_sed_list:
-                resp = resp + struct.pack('<H', registered_sed_id)
-                publicKey_data = get_publicKey(registered_sed_id)
-                resp = resp + publicKey_data
-                if i < already_registered_sed:
-                    break
-                i = i +1
-                #logging.info(f'len: {len(publicKey_data)}')
+        resp = resp + struct.pack('<H', registered_sed_id)
+        publicKey_data = get_publicKey(registered_sed_id)
+        #logging.info(f'Public key of {registered_sed_id} :\n {publicKey_data}')
+        resp = resp + publicKey_data
+        i = i + 1
+        if i >= already_registered_sed:
+            break
+        
     return resp
 
 
