@@ -940,6 +940,7 @@ int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
 int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
+  scewl_id_t tmp_src, tmp_tgt;
   if (src_id != SCEWL_FAA_ID)
   {
     if ((data[0] == 'P') && (data[1] == 'K'))
@@ -965,6 +966,32 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
             scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
             i = SCEWL_PK_NUM;
+          }
+        }
+      }
+      if (intf_avail(RAD_INTF))
+      {
+        // Read message from antenna
+        len = read_msg(RAD_INTF, buf, &tmp_src, &tmp_tgt, sizeof(buf), 1);
+
+        if (tmp_src != SCEWL_ID)
+        { // ignore our own outgoing messages
+          if (tmp_tgt == SCEWL_BRDCST_ID)
+          {
+            // receive broadcast message
+            return handle_brdcst_recv(buf, tmp_src, len);
+          }
+          else if (tmp_tgt == SCEWL_ID)
+          {
+            // receive unicast message
+            if (tmp_src == SCEWL_FAA_ID)
+            {
+              return handle_faa_recv(buf, len);
+            }
+            else
+            {
+              return handle_scewl_recv(buf, tmp_src, len);
+            }
           }
         }
       }
