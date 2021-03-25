@@ -99,6 +99,12 @@ typedef struct __attribute__((packed))
   scewl_crypto_msg_t crypto_msg;
 } scewl_msg_t;
 
+typedef struct __attribute__((packed))  
+{
+  scewl_hdr_t hdr;
+  scewl_msg_t scewl_msg;
+} send_scewl_msg_t;
+
 // sequence number for each SED
 typedef struct __attribute__((packed))
 {

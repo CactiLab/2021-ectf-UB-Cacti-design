@@ -358,10 +358,12 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, s
 
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
 {
-  int i = 0, ret = 0;
-  uint16_t padding_size = (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4;
-  int enc_len = len + padding_size + CRYPTO_HDR_SZ; // plaintext data len + 10 bytes CRYPTO_HDR_SZ
-  int scewl_msg_body_len = MSG_HDR_SZ + enc_len;    // crypto message: msg header + 4 bytes sequence number + body (data)
+  int i = 0, ret = 0, enc_len = 0;
+  uint16_t padding_size = 0;
+  int scewl_msg_body_len = MSG_HDR_SZ + enc_len; // crypto message: msg header + body (data)
+
+  padding_size = (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4 ? 4 - (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4 : 0;
+  enc_len = len + padding_size + CRYPTO_HDR_SZ;
 
   uint8_t key[keyCryptoLen] = {0};
   uint8_t iv[ivLen] = {0};
@@ -495,27 +497,29 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
 
 int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, uint8_t rsa_mode)
 {
-  scewl_hdr_t hdr;
+  send_scewl_msg_t send_scewl_msg;
+  // scewl_hdr_t hdr;
   uint16_t padding_size = 0, ret = 0;
   // char tmp_buf[SCEWL_MAX_DATA_SZ + 8] = {0};
 
-  padding_size = (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4;
+  padding_size = (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4 ? 4 - (len + MSG_HDR_SZ + CRYPTO_HDR_SZ) % 4 : 0;
+
+  // scewl_msg_t send_scewl_msg;
+  memset(&send_scewl_msg, 0, sizeof(send_scewl_msg_t));
 
   // pack header
-  hdr.magicS = 'S';
-  hdr.magicC = 'C';
-  hdr.src_id = src_id;
-  hdr.tgt_id = tgt_id;
-  hdr.len = len + MSG_HDR_SZ + CRYPTO_HDR_SZ + padding_size; // crypto message: msg header + 4 bytes sequence number + body (data)
+  send_scewl_msg.hdr.magicS = 'S';
+  send_scewl_msg.hdr.magicC = 'C';
+  send_scewl_msg.hdr.src_id = src_id;
+  send_scewl_msg.hdr.tgt_id = tgt_id;
+  send_scewl_msg.hdr.len = len + MSG_HDR_SZ + CRYPTO_HDR_SZ + padding_size; // crypto message: msg header + body (data)
 
-  scewl_msg_t send_scewl_msg;
-  memset(&send_scewl_msg, 0, sizeof(scewl_msg_t));
-
-  ret = enc_msg(src_id, tgt_id, len, data, &send_scewl_msg, rsa_mode);
-#ifdef DEBUG_MSG_CRYPTO
+  ret = enc_msg(src_id, tgt_id, len, data, &send_scewl_msg.scewl_msg, rsa_mode);
+  #ifdef DEBUG_MSG_CRYPTO
   send_str("send_enc_msg:\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, hdr.len, (char *)&send_scewl_msg);
-#endif
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, send_scewl_msg.hdr.len + sizeof(scewl_hdr_t));
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, send_scewl_msg.hdr.len + sizeof(scewl_hdr_t), (char *)&send_scewl_msg);
+  #endif
   if (ret == SCEWL_ERR)
   {
     return SCEWL_ERR;
@@ -526,11 +530,16 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_hdr_t) + hdr.len, tmp_buf);
   // intf_write(intf, (char *)&tmp_buf, sizeof(scewl_hdr_t) + hdr.len);
 
-  // send header
-  intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
+  // send the full scewl_msg
 
-  // send body
-  intf_write(intf, (char *)&send_scewl_msg, hdr.len);
+  // pack header again
+  send_scewl_msg.hdr.magicS = 'S';
+  send_scewl_msg.hdr.magicC = 'C';
+  send_scewl_msg.hdr.src_id = src_id;
+  send_scewl_msg.hdr.tgt_id = tgt_id;
+  send_scewl_msg.hdr.len = len + MSG_HDR_SZ + CRYPTO_HDR_SZ + padding_size; // crypto message: msg header + body (data)
+
+  intf_write(intf, (char *)&send_scewl_msg, sizeof(scewl_hdr_t) + send_scewl_msg.hdr.len);
 
   return SCEWL_OK;
 }
@@ -659,6 +668,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   scewl_msg_t *scewl_msg = (scewl_msg_t *)data;
   scewl_update_pk_t scewl_update_pk;
   // char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
+
   int ret = 0;
 
   // pack header
@@ -723,6 +733,12 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   ret = auth_msg(src_id, tgt_id, len, data, &output, rsa_mode);
 
   // write header
+  // pack header again 
+  hdr.magicS = 'S';
+  hdr.magicC = 'C';
+  hdr.src_id = src_id;
+  hdr.tgt_id = tgt_id;
+  hdr.len = len - MSG_HDR_SZ - CRYPTO_HDR_SZ - scewl_msg->padding_size; // msg - CRYPTO_HDR_SZ - scewl_hdr
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // write body
@@ -771,12 +787,8 @@ int send_sign_SSS_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   // send header
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
-// send body
-#ifdef REG_CRYPTO
+  // send body
   intf_write(intf, (char *)&sss_crypto_msg, RSA_BLOCK);
-#else
-  intf_write(intf, data, len);
-#endif
 
   return SCEWL_OK;
 }
