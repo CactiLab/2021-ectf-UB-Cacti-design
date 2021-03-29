@@ -101,22 +101,22 @@ LDFLAGS+=${COMPILER}/bn.o keys.o rsa.o
 all: ${COMPILER}/bn.o keys.o rsa.o
 endif
 
-# ################ add sha512 ################
+# ################ add sha1 ################
 
 # path to auth library
-SHA512PATH=./auth
+SHA1PATH=./auth
 
 # add path to auth source files to source path
-VPATH+=${SHA512PATH}
+VPATH+=${SHA1PATH}
 
 # add auth library to includes path
-IPATH+=${SHA512PATH}
+IPATH+=${SHA1PATH}
 
 # add auth object file to includes path
-LDFLAGS+=${COMPILER}/sha512.o
+LDFLAGS+=${COMPILER}/sha1.o
 
 # add rule to build auth library
-all: ${COMPILER}/sha512.o
+all: ${COMPILER}/sha1.o
 
 
 ###########################################

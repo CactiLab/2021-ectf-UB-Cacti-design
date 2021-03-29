@@ -12,6 +12,7 @@
 #include "controller.h"
 #include "rsa.h"
 #include "key.h"
+#include "sha1.h"
 
 // this will run if EXAMPLE_AES is defined in the Makefile
 #ifdef EXAMPLE_AES
@@ -30,9 +31,9 @@ char int2char(uint8_t i)
 char buf[SCEWL_MAX_CRYPTO_DATA_SZ];
 
 //sequence number structure
-sequence_num_t messeage_sq[max_sequenced_SEDS];
+sequence_num_t g_messeage_sq[max_sequenced_SEDS];
 
-broadcast_sequence_num_t broadcast_rcv[max_sequenced_SEDS];
+broadcast_sequence_num_t g_broadcast_rcv[max_sequenced_SEDS];
 
 uint32_t g_broadcast_send_sequence = 0;
 
@@ -42,32 +43,84 @@ volatile rsa_sk *own_sk = &private_key;
 volatile uint32_t sysTimer = 0;
 
 // an array to store all provisoned sed's public key
-volatile scewl_pub_t scewl_pk[SCEWL_PK_NUM];
+volatile scewl_pub_t g_scewl_pk[SCEWL_PK_NUM];
+volatile DTYPE g_pk_sig[RSA_BLOCK / 2] = {0};
 
 void SysTick_Handler(void)
 {
   sysTimer++;
 }
 
+uint8_t get_broadcast_sequence_numebr_index(scewl_id_t source_SED)
+{
+  for (int i = 0; i < max_sequenced_SEDS; i++)
+  {
+    if (g_broadcast_rcv[i].sed_id == 0 || g_broadcast_rcv[i].sed_id == source_SED)
+    {
+      g_broadcast_rcv[i].sed_id = source_SED;
+      return i;
+    }
+  }
+  return -1;
+}
+
+uint8_t get_targeted_sequence_numebr_index(scewl_id_t source_SED)
+{
+  for (int i = 0; i < max_sequenced_SEDS; i++)
+  {
+    if (g_messeage_sq[i].sed_id == 0 || g_messeage_sq[i].sed_id == source_SED)
+    {
+      g_messeage_sq[i].sed_id = source_SED;
+      return i;
+    }
+  }
+  return -1;
+}
+
+bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, scewl_id_t target_SED)
+{
+  uint8_t index;
+  if (target_SED == 0)
+  {
+    index = get_broadcast_sequence_numebr_index(source_SED);
+    if (g_broadcast_rcv[index].rcv_sq < received_sq_number)
+    {
+      g_broadcast_rcv[index].rcv_sq = received_sq_number;
+      return true;
+    }
+  }
+  else
+  {
+    index = get_targeted_sequence_numebr_index(source_SED);
+    if (g_messeage_sq[index].sq_receive < received_sq_number)
+    {
+      g_messeage_sq[index].sq_receive = received_sq_number;
+      return true;
+    }
+  }
+  return false;
+}
+
+
 int check_scewl_pk(scewl_id_t tgt_id)
 {
   for (int i = 0; i < SCEWL_PK_NUM; i++)
   {
-    if (scewl_pk[i].scewl_id == tgt_id)
+    if (g_scewl_pk[i].scewl_id == tgt_id)
     {
-      if (scewl_pk[i].flag == 1)
+      if (g_scewl_pk[i].flag == 1)
       {
         // configure the e
-        BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+        BN_init(g_scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
         //e=2^16+1
-        scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-        scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+        g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+        g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
         // #ifdef DEBUG_PK_TEST
         //         send_str("find tgt public key\n");
         //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 1, (char *)&i);
-        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&scewl_pk[i].scewl_id);
-        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
+        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&g_scewl_pk[i].scewl_id);
+        //         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
         // #endif
         return i;
       }
@@ -88,7 +141,44 @@ void send_pk(scewl_id_t tgt_id)
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 }
 
-void brdcst_own_pk()
+int check_signed_pk(rsa_pk *pk, DTYPE *sig)
+{
+  unsigned char output[RSA_BLOCK] = {0};
+  DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
+  SHA_Simple((unsigned char *)pk, sizeof(rsa_pk), output);
+
+  // configure the e
+  BN_init(sss_public_key.e, MAX_PRIME_LENGTH);
+  //e=2^16+1
+  sss_public_key.e[MAX_PRIME_LENGTH - 2] = 1;
+  sss_public_key.e[MAX_PRIME_LENGTH - 1] = 1;
+
+#ifdef DEBUG_PK_TEST
+  send_str("check_signed_pk: SHA1 digest :\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, output);
+  send_str("check_signed_pk: signature :\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, sig);
+  send_str("check_signed_pk: sss_pk :\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&sss_public_key);
+#endif
+
+  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, sig, MAX_MODULUS_LENGTH, &sss_public_key);
+
+#ifdef DEBUG_PK_TEST
+  send_str("check_signed_pk: authenticate result :\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)&decipher);
+#endif
+  if (BN_cmp(decipher, MAX_MODULUS_LENGTH, (DTYPE *)&output, MAX_MODULUS_LENGTH) == 0)
+  {
+#ifdef DEBUG_PK_TEST
+    send_str("check_signed_pk: authenticate success\n");
+#endif
+    return 0;
+  }
+  return -1;
+}
+
+void send_own_pk(scewl_id_t tgt_id)
 {
   scewl_update_pk_t scewl_update_pk;
   memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
@@ -96,13 +186,53 @@ void brdcst_own_pk()
   scewl_update_pk.magicP = 'P';
   scewl_update_pk.magicK = 'K';
   memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+  memcpy(&scewl_update_pk.sig, g_pk_sig, RSA_BLOCK);
 
 #ifdef DEBUG_PK_TEST
-  send_str("brdcst_own_pk:\n");
+  send_str("send_own_pk:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 #endif
 
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+  send_msg(RAD_INTF, SCEWL_ID, tgt_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+}
+
+int set_tgt_pk(scewl_id_t src_id, char *data)
+{
+  scewl_update_pk_t scewl_update_pk;
+  if (check_scewl_pk(src_id) < 0)
+  {
+    for (size_t i = 0; i < SCEWL_PK_NUM; i++)
+    {
+      if (g_scewl_pk[i].flag == 0)
+      {
+        memcpy(&scewl_update_pk, data, sizeof(scewl_update_pk_t));
+        if (check_signed_pk(&scewl_update_pk.pk, scewl_update_pk.sig) < 0)
+        {
+#ifdef DEBUG_PK_TEST
+          send_str("handle_brdcst_recv: wrong pk!\n");
+#endif
+          return SCEWL_ERR;
+        }
+        memcpy(&g_scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
+        g_scewl_pk[i].scewl_id = src_id;
+        g_scewl_pk[i].flag = 1;
+
+        // configure the e
+        BN_init(g_scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+        //e=2^16+1
+        g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+        g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+
+#ifdef DEBUG_PK_TEST
+        send_str("send_auth_msg: set pk!");
+        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
+#endif
+        i = SCEWL_PK_NUM;
+        // send_get_scewl_pk_done_msg(src_id);
+      }
+    }
+  }
 }
 
 int send_get_scewl_pk_msg(scewl_id_t tgt_id)
@@ -139,23 +269,31 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
             {
               for (size_t i = 0; i < SCEWL_PK_NUM; i++)
               {
-                if (scewl_pk[i].flag == 0)
+                if (g_scewl_pk[i].flag == 0)
                 {
                   memcpy(&scewl_update_pk, tmp_buf, sizeof(scewl_update_pk_t));
-                  memcpy(&scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
-                  scewl_pk[i].scewl_id = tgt_id;
-                  scewl_pk[i].flag = 1;
+                  if (check_signed_pk(&scewl_update_pk.pk, scewl_update_pk.sig) < 0)
+                  {
+#ifdef DEBUG_PK_TEST
+                    send_str("handle_brdcst_recv: wrong pk!\n");
+#endif
+                    return SCEWL_ERR;
+                  }
+
+                  memcpy(&g_scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
+                  g_scewl_pk[i].scewl_id = tgt_id;
+                  g_scewl_pk[i].flag = 1;
 
                   // configure the e
-                  BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
+                  BN_init(g_scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
                   //e=2^16+1
-                  scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-                  scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+                  g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
+                  g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
 #ifdef DEBUG_PK_TEST
                   send_str("send_get_scewl_pk_msg: set pk!");
                   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
+                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
 #endif
                   i = SCEWL_PK_NUM;
                   count = 10;
@@ -239,7 +377,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     }
     else
     {
-      rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, &scewl_pk[idx].pk);
+      rsa_encrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, &g_scewl_pk[idx].pk);
     }
 
 #ifdef DEBUG_KEY_CRYPTO
@@ -275,7 +413,7 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     }
     else
     {
-      rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, &scewl_pk[idx].pk);
+      rsa_encrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, &g_scewl_pk[idx].pk);
     }
     break;
   case RSA_DEC:
@@ -306,55 +444,6 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
   return 0;
 }
 
-uint8_t get_broadcast_sequence_numebr_index(scewl_id_t source_SED)
-{
-  for (int i = 0; i < max_sequenced_SEDS; i++)
-  {
-    if (broadcast_rcv[i].sed_id == 0 || broadcast_rcv[i].sed_id == source_SED)
-    {
-      broadcast_rcv[i].sed_id = source_SED;
-      return i;
-    }
-  }
-  return -1;
-}
-
-uint8_t get_targeted_sequence_numebr_index(scewl_id_t source_SED)
-{
-  for (int i = 0; i < max_sequenced_SEDS; i++)
-  {
-    if (messeage_sq[i].sed_id == 0 || messeage_sq[i].sed_id == source_SED)
-    {
-      messeage_sq[i].sed_id = source_SED;
-      return i;
-    }
-  }
-  return -1;
-}
-
-bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, scewl_id_t target_SED)
-{
-  uint8_t index;
-  if (target_SED == 0)
-  {
-    index = get_broadcast_sequence_numebr_index(source_SED);
-    if (broadcast_rcv[index].rcv_sq < received_sq_number)
-    {
-      broadcast_rcv[index].rcv_sq = received_sq_number;
-      return true;
-    }
-  }
-  else
-  {
-    index = get_targeted_sequence_numebr_index(source_SED);
-    if (messeage_sq[index].sq_receive < received_sq_number)
-    {
-      messeage_sq[index].sq_receive = received_sq_number;
-      return true;
-    }
-  }
-  return false;
-}
 
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
 {
@@ -404,7 +493,7 @@ int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scew
     {
       return SCEWL_ERR;
     }
-    scewl_msg->crypto_msg.sq = ++messeage_sq[index].sq_send; // setup the sequence number
+    scewl_msg->crypto_msg.sq = ++g_messeage_sq[index].sq_send; // setup the sequence number
   }
   memcpy(scewl_msg->crypto_msg.body, data, len); // setup the plaintext
 
@@ -515,11 +604,11 @@ int send_enc_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t le
   send_scewl_msg.hdr.len = len + MSG_HDR_SZ + CRYPTO_HDR_SZ + padding_size; // crypto message: msg header + body (data)
 
   ret = enc_msg(src_id, tgt_id, len, data, &send_scewl_msg.scewl_msg, rsa_mode);
-  #ifdef DEBUG_MSG_CRYPTO
+#ifdef DEBUG_MSG_CRYPTO
   send_str("send_enc_msg:\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, send_scewl_msg.hdr.len + sizeof(scewl_hdr_t));
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, send_scewl_msg.hdr.len + sizeof(scewl_hdr_t), (char *)&send_scewl_msg);
-  #endif
+#endif
   if (ret == SCEWL_ERR)
   {
     return SCEWL_ERR;
@@ -687,53 +776,30 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
     send_str("send_auth_msg: receive pk requests");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
 #endif
-    scewl_update_pk.magicP = 'P';
-    scewl_update_pk.magicK = 'K';
-    memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
+    // scewl_update_pk.magicP = 'P';
+    // scewl_update_pk.magicK = 'K';
+    // memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
 
-#ifdef DEBUG_PK_TEST
-    send_str("send_auth_msg: send pk");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
-#endif
-    send_msg(RAD_INTF, SCEWL_ID, src_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+    // #ifdef DEBUG_PK_TEST
+    //     send_str("send_auth_msg: send pk");
+    //     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+    // #endif
+    // send_msg(RAD_INTF, SCEWL_ID, src_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+
+    send_own_pk(src_id);
+
     return SCEWL_NO_MSG;
   }
   else if ((data[0] == 'P') && (data[1] == 'K'))
   {
-    if (check_scewl_pk(src_id) < 0)
-    {
-      for (size_t i = 0; i < SCEWL_PK_NUM; i++)
-      {
-        if (scewl_pk[i].flag == 0)
-        {
-          memcpy(&scewl_update_pk, data, sizeof(scewl_update_pk_t));
-          memcpy(&scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
-          scewl_pk[i].scewl_id = src_id;
-          scewl_pk[i].flag = 1;
-
-          // configure the e
-          BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
-          //e=2^16+1
-          scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-          scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-
-#ifdef DEBUG_PK_TEST
-          send_str("send_auth_msg: set pk!");
-          send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-          send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&scewl_pk[i].pk);
-#endif
-          i = SCEWL_PK_NUM;
-          // send_get_scewl_pk_done_msg(src_id);
-        }
-      }
-    }
+    set_tgt_pk(src_id, data);
     return SCEWL_NO_MSG;
   }
 
   ret = auth_msg(src_id, tgt_id, len, data, &output, rsa_mode);
 
   // write header
-  // pack header again 
+  // pack header again
   hdr.magicS = 'S';
   hdr.magicC = 'C';
   hdr.src_id = src_id;
@@ -961,26 +1027,9 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
       send_str("handle_brdcst_recv: receive the pk brdcst!\n");
       send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
 #endif
-      if (check_scewl_pk(src_id) < 0)
-      {
-        for (size_t i = 0; i < SCEWL_PK_NUM; i++)
-        {
-          if (scewl_pk[i].flag == 0)
-          {
-            memcpy(&scewl_pk[i].pk, data + 2, sizeof(rsa_pk));
-            scewl_pk[i].scewl_id = src_id;
-            scewl_pk[i].flag = 1;
 
-            // configure the e
-            BN_init(scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
-            //e=2^16+1
-            scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-            scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
+      set_tgt_pk(src_id, data);
 
-            i = SCEWL_PK_NUM;
-          }
-        }
-      }
       if (intf_avail(RAD_INTF))
       {
         // Read message from antenna
@@ -1110,13 +1159,23 @@ int sss_register()
   for (i = 0; i < totalSEDs; i++)
   {
     // current header(4) + totalSEDs(1) + (dev_id(2) + rsa_pk(162)) * totalSEDs
-    memcpy(&scewl_pk[i].scewl_id, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * i, sizeof(scewl_pub_t));
+    memcpy(&g_scewl_pk[i].scewl_id, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * i, sizeof(scewl_pub_t));
 
-    scewl_pk[i].flag = 1;
+    g_scewl_pk[i].flag = 1;
     pos = i;
   }
 
-  brdcst_own_pk();
+  // read the signature of its own pk
+  memcpy(g_pk_sig, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * totalSEDs, RSA_BLOCK);
+
+#ifdef DEBUG_PK_TEST
+// send_str("own pk signature\n");
+// send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)&g_pk_sig);
+#endif
+
+  // check_signed_pk(g_pk_sig);
+
+  send_own_pk(SCEWL_BRDCST_ID);
 
   // notify CPU of response
   status = send_msg(CPU_INTF, src_id, tgt_id, sizeof(scewl_sss_msg_t), (char *)&msg);
@@ -1198,9 +1257,9 @@ int main()
     return -1;
   }
   // intialize the sequence numbers to zero
-  memset(&messeage_sq, 0, 16 * sizeof(sequence_num_t));
-  memset(&broadcast_rcv, 0, 16 * sizeof(broadcast_sequence_num_t));
-  memset(&scewl_pk, 0, sizeof(scewl_pub_t) * SCEWL_PK_NUM);
+  memset(&g_messeage_sq, 0, 16 * sizeof(sequence_num_t));
+  memset(&g_broadcast_rcv, 0, 16 * sizeof(broadcast_sequence_num_t));
+  memset(&g_scewl_pk, 0, sizeof(scewl_pub_t) * SCEWL_PK_NUM);
 
   // initialize interfaces
   intf_init(CPU_INTF);

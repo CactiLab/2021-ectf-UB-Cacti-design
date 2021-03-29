@@ -70,7 +70,7 @@ int sign_pk(char *tgt_pub_file, char *tgt_pub_signed_file)
     }
 
     // write pk to the file
-    fwrite(&tgt_pk, 1, sizeof(rsa_pk), fp);
+    // fwrite(&tgt_pk, 1, sizeof(rsa_pk), fp);
     //write signed digest into file
     fwrite(cipher, 1, MAX_MODULUS_LENGTH * 2, fp);
     fclose(fp);
@@ -78,11 +78,11 @@ int sign_pk(char *tgt_pub_file, char *tgt_pub_signed_file)
     return 0;
 }
 
-int auth_pk(char *tgt_pub_signed_file){
+int auth_pk(char *tgt_pub_file, char *tgt_pub_signed_file){
     
     rsa_pk sss_pk;
 
-    unsigned char tgt_pk[PK_SIGN_SZ] = {0};
+    rsa_pk tgt_pk;
     char *sss_pub_file = "rsa/sss_publicKey";
     char *tmp = "rsa/tmp";
     unsigned char output[64] = {0};
@@ -106,6 +106,17 @@ int auth_pk(char *tgt_pub_signed_file){
     fread(&sss_pk, sizeof(rsa_pk), 1, fp);
     fclose(fp);
 
+    //read target public key from file
+    fp = fopen(tgt_pub_file, "rb");
+    if (fp == NULL)
+    {
+        printf("Cannot open file %s\n", tgt_pub_file);
+        return -1;
+    }
+
+    fread((char *)&tgt_pk, sizeof(rsa_pk), 1, fp);
+    fclose(fp);
+
     //read target signed public key from file
     fp = fopen(tgt_pub_signed_file, "rb");
     if (fp == NULL)
@@ -114,12 +125,12 @@ int auth_pk(char *tgt_pub_signed_file){
         return -1;
     }
 
-    fread(tgt_pk, sizeof(rsa_pk), 1, fp);
+    // fread(tgt_pk, sizeof(rsa_pk), 1, fp);
     fread(cipher, MAX_MODULUS_LENGTH * 2, 1, fp);
     fclose(fp);
 
     printf("SHA1 of the target pk starts...\n");
-    SHA_Simple(tgt_pk, sizeof(rsa_pk), output);
+    SHA_Simple((unsigned char *)&tgt_pk, sizeof(rsa_pk), output);
 
     printf("auth the target pk digest...\n");
     rsa_encrypt(decipher, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, &sss_pk);
@@ -152,7 +163,7 @@ int main(int argc, char *argv[])
     sprintf(tgt_pub_signed_file, "rsa/%s_publicKey_signed", argv[1]);
 
     sign_pk(tgt_pub_file, tgt_pub_signed_file);
-    // auth_pk(tgt_pub_signed_file);
+    // auth_pk(tgt_pub_file, tgt_pub_signed_file);
 
     return 0;
 }

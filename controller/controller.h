@@ -119,6 +119,10 @@ typedef struct __attribute__((packed))
   uint32_t rcv_sq;
 }broadcast_sequence_num_t;
 
+typedef struct __attribute__((packed)){
+    rsa_pk pk;
+    unsigned char sig[64];
+}rsa_pk_signed;
 
 // registration message
 typedef struct __attribute__((packed))
@@ -150,6 +154,7 @@ typedef struct __attribute__((packed))
   uint8_t magicP; // all messages must start with the magic code "PK"
   uint8_t magicK;
   rsa_pk pk;
+  DTYPE sig[RSA_BLOCK/2];
 } scewl_update_pk_t;
 
 // SCEWL status codes
