@@ -71,13 +71,20 @@ def enc_input(scewl_id):
     
     private_key_file_path = "/secrets/" + str(scewl_id) + "/privateKey.txt"
     public_key_file_path = "/secrets/" + str(scewl_id) + "/publicKey.txt"
+    sss_public_key_file_path = "/secrets" + "/rsa/sss_publicKey.txt"
 
-    key_file_header = open(key_file_name, "w")
-    privateKey_file = open(private_key_file_path, 'r')
-    publicKey_file = open(public_key_file_path, 'r')
+    try:
+        key_file_header = open(key_file_name, "w")
+        privateKey_file = open(private_key_file_path, 'r')
+        publicKey_file = open(public_key_file_path, 'r')
+        sss_public_key_file = open(sss_public_key_file_path, 'r')
+    except IOError:
+        print("Create secrets file can not open private or public key files")
+        return
 
     pirvateKey_Lines = privateKey_file.readlines()
     publicKey_Lines = publicKey_file.readlines()
+    sss_publicKey_Lines = sss_public_key_file.readlines()
 
     cnt = 0
     for line in pirvateKey_Lines:
@@ -91,6 +98,12 @@ def enc_input(scewl_id):
         publicKey_Lines[cnt] = [(line[i:i+4]) for i in range(0, len(line), 4)]
         cnt = cnt + 1
     
+    cnt = 0
+    for line in sss_publicKey_Lines:
+        line = line.replace('\n', '')
+        sss_publicKey_Lines[cnt] = [(line[i:i+4]) for i in range(0, len(line), 4)]
+        cnt = cnt + 1
+    
     key_file_header.write(f'''
 #ifndef KEY_H
 #define KEY_H
@@ -100,6 +113,7 @@ def enc_input(scewl_id):
 
     write_into_header_file("rsa_sk", key_file_header, pirvateKey_Lines, "private_key", 11)
     write_into_header_file("rsa_pk", key_file_header, publicKey_Lines, "public_key", 3)
+    write_into_header_file("rsa_pk", key_file_header, sss_publicKey_Lines, "sss_public_key", 3)
     
     key_file_header.write(f'''
 #endif    
@@ -107,6 +121,7 @@ def enc_input(scewl_id):
     key_file_header.close()
     privateKey_file.close()
     publicKey_file.close()
+    sss_public_key_file.close()
 
 if __name__ == '__main__':
     #read input from command line

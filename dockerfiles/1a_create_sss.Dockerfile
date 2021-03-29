@@ -24,7 +24,9 @@ ADD rsa /secrets/rsa
 WORKDIR /secrets/rsa
 RUN make
 RUN ./keygen
-RUN rm privateKey.txt publicKey.txt
+RUN mv privateKey.txt /secrets/rsa/sss_privateKey.txt
+RUN mv publicKey.txt /secrets/rsa/sss_publicKey.txt
+#RUN rm privateKey.txt publicKey.txt
 RUN mv publicKey /secrets/rsa/sss_publicKey
 RUN mv privateKey /secrets/rsa/sss_privateKey
 
