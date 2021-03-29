@@ -166,11 +166,18 @@ class SSS:
                 #logging.info('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
                 #logging.info(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
                 other_sed_pub = prepare_response(current_registered_sed, already_registered_sed)
-
-                message_length = len(other_sed_pub) + 5
+                
+                own_pk_signed_by_sss = get_own_public_key_signed_by_sss(src_id) #226 bytes of signed own pK
+                if own_pk_signed_by_sss == b'':
+                    print('===' + str(src_id) + '=== Get Own singed PK fails')
+                    return
+                #logging.info(f'==={src_id}=== signed pk length{len(own_pk_signed_by_sss)}')
+                #message_length = len(other_sed_pub) + 5
+                message_length = len(other_sed_pub) + len(own_pk_signed_by_sss) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
                 #resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 5, dev_id, resp_op, already_registered_sed)
                 resp = resp + other_sed_pub
+                resp = resp + other_sed_pub + own_pk_signed_by_sss
                 current_registered_sed.append(dev_id)
                 #logging.info(f'Response : {resp}')
             else:
@@ -277,6 +284,25 @@ def prepare_response(registered_sed_list, already_registered_sed):
         
     return resp
 
+#sign SED's own public key with SSS private key, it will return 226 bytes
+def get_own_public_key_signed_by_sss(src_id):
+    sign_app_command = "./rsa/sign " + str(src_id)
+
+    if not os.system(sign_app_command):
+        print(f'==={src_id}=== sign own public key by SSS success')
+    else:
+        print(f'==={src_id}=== sign own public key by SSS fails')
+        return b''
+
+    signed_pk_file_name = "rsa/" + str(src_id) + "_publicKey_signed"
+    try:
+        with open(signed_pk_file_name, mode = 'rb') as file:
+            signed_pk_data = file.read()
+    except IOError:
+        print(f'==={src_id}=== Failed to open signed PK file to read')
+        return b''
+    
+    return signed_pk_data
 
 def main():
 
