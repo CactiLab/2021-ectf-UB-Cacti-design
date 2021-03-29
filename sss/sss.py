@@ -171,13 +171,13 @@ class SSS:
                 if own_pk_signature_by_sss == b'':
                     print('===' + str(src_id) + '=== Get Own  Public key signature fails')
                     return
-                logging.info(f'==={src_id}=== own public key signature:\n {own_pk_signature_by_sss}')
-                print(f'==={src_id}=== own public key signature:\n {own_pk_signature_by_sss}')
+                logging.info(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
+                print(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
                 #message_length = len(other_sed_pub) + 5
                 message_length = len(other_sed_pub) + len(own_pk_signature_by_sss) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
                 #resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, 5, dev_id, resp_op, already_registered_sed)
-                resp = resp + other_sed_pub
+                #resp = resp + other_sed_pub
                 resp = resp + other_sed_pub + own_pk_signature_by_sss
                 current_registered_sed.append(dev_id)
                 #logging.info(f'Response : {resp}')
@@ -288,7 +288,6 @@ def prepare_response(registered_sed_list, already_registered_sed):
 #sign SED's own public key with SSS private key, it will return 226 bytes
 def get_own_public_key_signature_from_sss(src_id):
     sign_app_command = "./rsa/sign " + str(src_id)
-
     if not os.system(sign_app_command):
         print(f'==={src_id}=== signature own public key by SSS success')
     else:
