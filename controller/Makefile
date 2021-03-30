@@ -104,20 +104,19 @@ endif
 # ################ add sha1 ################
 
 # path to auth library
-SHA1PATH=./auth
+MD5PATH=./auth
 
 # add path to auth source files to source path
-VPATH+=${SHA1PATH}
+VPATH+=${MD5PATH}
 
 # add auth library to includes path
-IPATH+=${SHA1PATH}
+IPATH+=${MD5PATH}
 
 # add auth object file to includes path
-LDFLAGS+=${COMPILER}/sha1.o
+LDFLAGS+=${COMPILER}/md5.o
 
 # add rule to build auth library
-all: ${COMPILER}/sha1.o
-
+all: ${COMPILER}/md5.o
 
 ###########################################
 # this must be the last build rule of `all`

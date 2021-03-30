@@ -23,7 +23,8 @@
 #define SCEWL_MAX_DATA_SZ 0x4000             //max data size
 
 // change this value when want change max SEDs
-#define max_sequenced_SEDS 30
+#define max_sequenced_SEDS 29
+
 // type of a SCEWL ID
 typedef uint16_t scewl_id_t;
 
@@ -35,7 +36,7 @@ typedef uint16_t scewl_id_t;
 
 #define max(x, y) (((x) >= (y)) ? (x) : (y))
 #define send_str(M) send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, strlen(M), M)
-#define SCEWL_PK_NUM 30
+#define SCEWL_PK_NUM max_sequenced_SEDS
 
 #define keyLen 12
 #define keyCryptoLen 64
@@ -48,7 +49,7 @@ typedef uint16_t scewl_id_t;
 
 /******************************** start sss signature ********************************/
 #define REG_CRYPTO 1    // uncomment this to sign sss_msg, the test key stored at sss container /secrets/10/key.h
-// #define DEBUG_PK_TEST 1
+#define DEBUG_PK_TEST 1
 // #define DEBUG_REG 1
 /******************************** start sss signature ********************************/
 
