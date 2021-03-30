@@ -322,6 +322,7 @@ int handle_faa_send(char *data, uint16_t len);
  */
 int handle_registration(char *op);
 
+void scewl_msg_handling(int registered);
 /*
  * sss_register
  * 

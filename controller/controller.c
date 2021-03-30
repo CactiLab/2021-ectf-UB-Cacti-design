@@ -44,7 +44,7 @@ volatile uint32_t sysTimer = 0;
 
 // an array to store all provisoned sed's public key
 volatile scewl_pub_t g_scewl_pk[SCEWL_PK_NUM];
-volatile DTYPE g_pk_sig[RSA_BLOCK / 2] = {0};
+volatile DTYPE g_own_pk_sig[RSA_BLOCK / 2];
 
 void SysTick_Handler(void)
 {
@@ -101,7 +101,6 @@ bool check_sequence_number(scewl_id_t source_SED, uint32_t received_sq_number, s
   return false;
 }
 
-
 int check_scewl_pk(scewl_id_t tgt_id)
 {
   for (int i = 0; i < SCEWL_PK_NUM; i++)
@@ -129,23 +128,10 @@ int check_scewl_pk(scewl_id_t tgt_id)
   return -1;
 }
 
-void send_pk(scewl_id_t tgt_id)
+int check_signed_pk(scewl_update_pk_t *scew_update_pk)
 {
-  scewl_update_pk_t scewl_update_pk;
-  memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
-
-  scewl_update_pk.magicP = 'P';
-  scewl_update_pk.magicK = 'K';
-  memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
-
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_BRDCST_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
-}
-
-int check_signed_pk(rsa_pk *pk, DTYPE *sig)
-{
-  unsigned char output[RSA_BLOCK] = {0};
+  // unsigned char output[RSA_BLOCK] = {0};
   DTYPE decipher[MAX_MODULUS_LENGTH] = {0};
-  SHA_Simple((unsigned char *)pk, sizeof(rsa_pk), output);
 
   // configure the e
   BN_init(sss_public_key.e, MAX_PRIME_LENGTH);
@@ -154,27 +140,40 @@ int check_signed_pk(rsa_pk *pk, DTYPE *sig)
   sss_public_key.e[MAX_PRIME_LENGTH - 1] = 1;
 
 #ifdef DEBUG_PK_TEST
-  send_str("check_signed_pk: SHA1 digest :\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, output);
   send_str("check_signed_pk: signature :\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, sig);
-  send_str("check_signed_pk: sss_pk :\n");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&sss_public_key);
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)(scew_update_pk->sig));
+  // send_str("check_signed_pk: sss_pk :\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&sss_public_key);
 #endif
 
-  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, sig, MAX_MODULUS_LENGTH, &sss_public_key);
+  rsa_encrypt(decipher, MAX_MODULUS_LENGTH, scew_update_pk->sig, MAX_MODULUS_LENGTH, &sss_public_key);
 
 #ifdef DEBUG_PK_TEST
-  send_str("check_signed_pk: authenticate result :\n");
+  send_str("check_signed_pk: authentication result :\n");
   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)&decipher);
 #endif
-  if (BN_cmp(decipher, MAX_MODULUS_LENGTH, (DTYPE *)&output, MAX_MODULUS_LENGTH) == 0)
+
+  memset(&(scew_update_pk->sig), 0, RSA_BLOCK);
+
+  SHA_Simple((unsigned char *)&(scew_update_pk->pk), sizeof(rsa_pk), (unsigned char *)&(scew_update_pk->sig));
+
+#ifdef DEBUG_PK_TEST
+  send_str("check_signed_pk: SHA1 :\n");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)(scew_update_pk->sig));
+  // send_str("check_signed_pk: sss_pk :\n");
+  // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&sss_public_key);
+#endif
+
+  if (BN_cmp(decipher, MAX_MODULUS_LENGTH, (DTYPE *)&(scew_update_pk->sig), MAX_MODULUS_LENGTH) == 0)
   {
 #ifdef DEBUG_PK_TEST
-    send_str("check_signed_pk: authenticate success\n");
+    send_str("check_signed_pk: authentication success\n");
 #endif
     return 0;
   }
+#ifdef DEBUG_PK_TEST
+  send_str("check_signed_pk: authentication failure\n");
+#endif
   return -1;
 }
 
@@ -186,7 +185,7 @@ void send_own_pk(scewl_id_t tgt_id)
   scewl_update_pk.magicP = 'P';
   scewl_update_pk.magicK = 'K';
   memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
-  memcpy(&scewl_update_pk.sig, g_pk_sig, RSA_BLOCK);
+  memcpy(&scewl_update_pk.sig, g_own_pk_sig, RSA_BLOCK);
 
 #ifdef DEBUG_PK_TEST
   send_str("send_own_pk:\n");
@@ -196,24 +195,22 @@ void send_own_pk(scewl_id_t tgt_id)
   send_msg(RAD_INTF, SCEWL_ID, tgt_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 }
 
-int set_tgt_pk(scewl_id_t src_id, char *data)
+int set_tgt_pk(scewl_id_t src_id, scewl_update_pk_t *scewl_update_pk)
 {
-  scewl_update_pk_t scewl_update_pk;
   if (check_scewl_pk(src_id) < 0)
   {
     for (size_t i = 0; i < SCEWL_PK_NUM; i++)
     {
       if (g_scewl_pk[i].flag == 0)
       {
-        memcpy(&scewl_update_pk, data, sizeof(scewl_update_pk_t));
-        if (check_signed_pk(&scewl_update_pk.pk, scewl_update_pk.sig) < 0)
+        if (check_signed_pk(scewl_update_pk) < 0)
         {
 #ifdef DEBUG_PK_TEST
-          send_str("handle_brdcst_recv: wrong pk!\n");
+          send_str("set_tgt_pk: wrong pk!\n");
 #endif
           return SCEWL_ERR;
         }
-        memcpy(&g_scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
+        memcpy(&g_scewl_pk[i].pk, &scewl_update_pk->pk, sizeof(rsa_pk));
         g_scewl_pk[i].scewl_id = src_id;
         g_scewl_pk[i].flag = 1;
 
@@ -224,12 +221,12 @@ int set_tgt_pk(scewl_id_t src_id, char *data)
         g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
 
 #ifdef DEBUG_PK_TEST
-        send_str("send_auth_msg: set pk!");
+        send_str("set_tgt_pk: set pk!");
         send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-        send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
+        // send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
 #endif
-        i = SCEWL_PK_NUM;
-        // send_get_scewl_pk_done_msg(src_id);
+        return i;
+        // i = SCEWL_PK_NUM;
       }
     }
   }
@@ -267,60 +264,18 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
             count++;
             if ((tmp_buf[0] == 'P') && (tmp_buf[1] == 'K'))
             {
-              for (size_t i = 0; i < SCEWL_PK_NUM; i++)
-              {
-                if (g_scewl_pk[i].flag == 0)
-                {
-                  memcpy(&scewl_update_pk, tmp_buf, sizeof(scewl_update_pk_t));
-                  if (check_signed_pk(&scewl_update_pk.pk, scewl_update_pk.sig) < 0)
-                  {
-#ifdef DEBUG_PK_TEST
-                    send_str("handle_brdcst_recv: wrong pk!\n");
-#endif
-                    return SCEWL_ERR;
-                  }
-
-                  memcpy(&g_scewl_pk[i].pk, &scewl_update_pk.pk, sizeof(rsa_pk));
-                  g_scewl_pk[i].scewl_id = tgt_id;
-                  g_scewl_pk[i].flag = 1;
-
-                  // configure the e
-                  BN_init(g_scewl_pk[i].pk.e, MAX_PRIME_LENGTH);
-                  //e=2^16+1
-                  g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 2] = 1;
-                  g_scewl_pk[i].pk.e[MAX_PRIME_LENGTH - 1] = 1;
-
-#ifdef DEBUG_PK_TEST
-                  send_str("send_get_scewl_pk_msg: set pk!");
-                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tgt_id);
-                  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(rsa_pk), (char *)&g_scewl_pk[i].pk);
-#endif
-                  i = SCEWL_PK_NUM;
-                  count = 10;
-                }
-              }
+              return set_tgt_pk(tgt_id, tmp_buf);
             }
           }
           else if ((tmp_buf[0] == 'N') && (tmp_buf[1] == 'O'))
           {
-#ifdef DEBUG_PK_TEST
-            send_str("send_auth_msg: receive pk requests");
-            send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&tmp_src);
-#endif
-            scewl_update_pk.magicP = 'P';
-            scewl_update_pk.magicK = 'K';
-            memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
-
-#ifdef DEBUG_PK_TEST
-            send_str("send_auth_msg: send pk");
-            send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
-#endif
-            send_msg(RAD_INTF, SCEWL_ID, tmp_src, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
+            send_own_pk(tmp_src);
           }
         }
       }
     }
   }
+  return SCEWL_ERR;
 }
 
 int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
@@ -443,7 +398,6 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
   }
   return 0;
 }
-
 
 int enc_msg(scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, char *data, scewl_msg_t *scewl_msg, uint8_t rsa_mode)
 {
@@ -776,15 +730,6 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
     send_str("send_auth_msg: receive pk requests");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
 #endif
-    // scewl_update_pk.magicP = 'P';
-    // scewl_update_pk.magicK = 'K';
-    // memcpy(&scewl_update_pk.pk, own_pk, sizeof(rsa_pk));
-
-    // #ifdef DEBUG_PK_TEST
-    //     send_str("send_auth_msg: send pk");
-    //     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
-    // #endif
-    // send_msg(RAD_INTF, SCEWL_ID, src_id, sizeof(scewl_update_pk_t), (char *)&scewl_update_pk);
 
     send_own_pk(src_id);
 
@@ -792,8 +737,29 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   }
   else if ((data[0] == 'P') && (data[1] == 'K'))
   {
+#ifdef DEBUG_PK_TEST
+    send_str("send_auth_msg: receive pk");
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+#endif
+
     set_tgt_pk(src_id, data);
     return SCEWL_NO_MSG;
+  }
+
+#ifdef DEBUG_PK_TEST
+  send_str("send_auth_msg: targeted message");
+  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+#endif
+
+  if (check_scewl_pk(src_id) < 0)
+  {
+    if (send_get_scewl_pk_msg(src_id) < 0)
+    {
+#ifdef DEBUG_PK_TEST
+      send_str("handle_brdcst_recv: Does not have tgt pk!");
+#endif
+      return SCEWL_NO_MSG;
+    }
   }
 
   ret = auth_msg(src_id, tgt_id, len, data, &output, rsa_mode);
@@ -948,15 +914,43 @@ int send_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t len, c
 int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
-  int ret = 0;
+  int ret = 0, registered = SCEWL_SSS_REG;
   scewl_id_t tmp_src, tmp_tgt;
-#ifdef DEBUG_MSG_CRYPTO
-  send_str("handle_scewl_recv: receive msg");
-  send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, data);
-#endif
+
   ret = send_auth_msg(CPU_INTF, src_id, SCEWL_ID, len, data, RSA_DEC);
-  if (ret == SCEWL_NO_MSG)
+  while (ret == SCEWL_NO_MSG)
   {
+    // handle outgoing message from CPU
+    if (intf_avail(CPU_INTF))
+    {
+      // Read message from CPU
+      len = read_msg(CPU_INTF, buf, &tmp_src, &tmp_tgt, sizeof(buf), 1);
+
+      /*
+        If the outgoing message is for broadcast or targeted transmission, the CIA properties should be maintained.
+        No need to protect messages to SSS or FAA.
+        */
+
+      if (tmp_tgt == SCEWL_BRDCST_ID)
+      {
+        ret = handle_brdcst_send(buf, len);
+      }
+      else if (tmp_tgt == SCEWL_FAA_ID)
+      {
+        ret = handle_faa_send(buf, len);
+      }
+      // else if (tmp_tgt == SCEWL_SSS_ID)
+      // {
+      //   registered = handle_registration(buf);
+      // }
+      else
+      {
+        ret = handle_scewl_send(buf, tmp_tgt, len);
+      }
+
+      continue;
+    }
+
     // handle incoming radio message
     if (intf_avail(RAD_INTF))
     {
@@ -968,23 +962,24 @@ int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
         if (tmp_tgt == SCEWL_BRDCST_ID)
         {
           // receive broadcast message
-          return handle_brdcst_recv(buf, tmp_src, len);
+          ret = handle_brdcst_recv(buf, tmp_src, len);
         }
         else if (tmp_tgt == SCEWL_ID)
         {
           // receive unicast message
           if (tmp_src == SCEWL_FAA_ID)
           {
-            return handle_faa_recv(buf, len);
+            ret = handle_faa_recv(buf, len);
           }
           else
           {
-            return handle_scewl_recv(buf, tmp_src, len);
+            ret = handle_scewl_recv(buf, tmp_src, len);
           }
         }
       }
     }
   }
+
   return ret;
 
 #else
@@ -995,16 +990,16 @@ int handle_scewl_recv(char *data, scewl_id_t src_id, uint16_t len)
 int handle_scewl_send(char *data, scewl_id_t tgt_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
+  int count = 0;
   if (check_scewl_pk(tgt_id) < 0)
   {
 #ifdef DEBUG_PK_TEST
     send_str("handle_scewl_send: pk requests");
 #endif
-    send_get_scewl_pk_msg(tgt_id);
-    if (check_scewl_pk(tgt_id) < 0)
+    if (send_get_scewl_pk_msg(tgt_id) < 0)
     {
 #ifdef DEBUG_PK_TEST
-      send_str("handle_scewl_send: Does not have tgt pk!");
+      send_str("handle_scewl_send: Request tgt pk failure!");
 #endif
       return SCEWL_ERR;
     }
@@ -1019,17 +1014,45 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
 {
 #ifdef MSG_CRYPTO
   scewl_id_t tmp_src, tmp_tgt;
+  int ret = 0, registered = SCEWL_SSS_REG;
+
   if (src_id != SCEWL_FAA_ID)
   {
-    if ((data[0] == 'P') && (data[1] == 'K'))
+    ret = send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
+    while (ret == SCEWL_NO_MSG)
     {
-#ifdef DEBUG_PK_TEST
-      send_str("handle_brdcst_recv: receive the pk brdcst!\n");
-      send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, len, (char *)data);
-#endif
+      // handle outgoing message from CPU
+      if (intf_avail(CPU_INTF))
+      {
+        // Read message from CPU
+        len = read_msg(CPU_INTF, buf, &tmp_src, &tmp_tgt, sizeof(buf), 1);
 
-      set_tgt_pk(src_id, data);
+        /*
+        If the outgoing message is for broadcast or targeted transmission, the CIA properties should be maintained.
+        No need to protect messages to SSS or FAA.
+        */
 
+        if (tmp_tgt == SCEWL_BRDCST_ID)
+        {
+          ret = handle_brdcst_send(buf, len);
+        }
+        else if (tmp_tgt == SCEWL_FAA_ID)
+        {
+          ret = handle_faa_send(buf, len);
+        }
+        // else if (tmp_tgt == SCEWL_SSS_ID)
+        // {
+        //   registered = handle_registration(buf);
+        // }
+        else
+        {
+          ret = handle_scewl_send(buf, tmp_tgt, len);
+        }
+
+        continue;
+      }
+
+      // handle incoming radio message
       if (intf_avail(RAD_INTF))
       {
         // Read message from antenna
@@ -1040,40 +1063,24 @@ int handle_brdcst_recv(char *data, scewl_id_t src_id, uint16_t len)
           if (tmp_tgt == SCEWL_BRDCST_ID)
           {
             // receive broadcast message
-            return handle_brdcst_recv(buf, tmp_src, len);
+            ret = handle_brdcst_recv(buf, tmp_src, len);
           }
           else if (tmp_tgt == SCEWL_ID)
           {
             // receive unicast message
             if (tmp_src == SCEWL_FAA_ID)
             {
-              return handle_faa_recv(buf, len);
+              ret = handle_faa_recv(buf, len);
             }
             else
             {
-              return handle_scewl_recv(buf, tmp_src, len);
+              ret = handle_scewl_recv(buf, tmp_src, len);
             }
           }
         }
       }
     }
-
-    if (check_scewl_pk(src_id) < 0)
-    {
-      send_get_scewl_pk_msg(src_id);
-      if (check_scewl_pk(src_id) < 0)
-      {
-#ifdef DEBUG_PK_TEST
-        send_str("handle_brdcst_recv: Does not have tgt pk!");
-#endif
-        return SCEWL_ERR;
-      }
-    }
-#ifdef DEBUG_MSG_CRYPTO
-    send_str("handle_brdcst_recv: Auth the brdcst from target!");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, src_id);
-#endif
-    return send_auth_msg(CPU_INTF, src_id, SCEWL_BRDCST_ID, len, data, RSA_AUTH);
+    return ret;
   }
 
   // if it is a faa brdcst
@@ -1166,14 +1173,14 @@ int sss_register()
   }
 
   // read the signature of its own pk
-  memcpy(g_pk_sig, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * totalSEDs, RSA_BLOCK);
+  memcpy(g_own_pk_sig, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * totalSEDs, RSA_BLOCK);
 
-#ifdef DEBUG_PK_TEST
-// send_str("own pk signature\n");
-// send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)&g_pk_sig);
-#endif
+  // #ifdef DEBUG_PK_TEST
+  //   send_str("own pk signature\n");
+  //   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)&g_own_pk_sig);
+  // #endif
 
-  // check_signed_pk(g_pk_sig);
+  // check_signed_pk(g_own_pk_sig);
 
   send_own_pk(SCEWL_BRDCST_ID);
 
@@ -1188,16 +1195,6 @@ int sss_register()
   // op should be REG on success
   return msg.op == SCEWL_SSS_REG;
 }
-
-// purpose is to let every one know about the de-registration
-/*
-void notify_deregistration()
-{
-  send_str("sending de-register message to every one");
-  char de_register_message[10] = {'D', 'E', 'R', 'E', 'G', 'I', 'S', 'T', 'E', 'R'};
-
-  handle_brdcst_send(de_register_message, 10);
-}*/
 
 int sss_deregister()
 {
