@@ -17,21 +17,21 @@ ARG SCEWL_ID
 # do here whatever you need here to create secrets for the new SED that the SSS needs access to
 
 ##############################
-RUN mkdir /secrets/${SCEWL_ID}
-RUN echo ${SCEWL_ID} >> /provisoned_list
-
-##############################
 # generate rsa key files for SCEWL_ID
-WORKDIR /secrets/rsa
-RUN ./keygen
-RUN mv privateKey.txt publicKey.txt /secrets/${SCEWL_ID}
-RUN mv publicKey /secrets/rsa/${SCEWL_ID}_publicKey
-RUN rm privateKey
+WORKDIR /secrets
+
+RUN mkdir /secrets/${SCEWL_ID} && \
+    echo ${SCEWL_ID} >> /provisoned_list && \
+    /secrets/rsa/keygen && \
+    mv /secrets/privateKey.txt /secrets/publicKey.txt /secrets/${SCEWL_ID} && \
+    mv /secrets/publicKey /secrets/rsa/${SCEWL_ID}_publicKey && \
+    rm /secrets/privateKey && \
+    python3 create_secret ${SCEWL_ID} generate_key
 # RUN make clean
 
 ##############################
 # Read key files from the sss/$SCEWL_ID/ to generate the key.h file
-WORKDIR /secrets
-RUN python3 create_secret ${SCEWL_ID} generate_key
+# WORKDIR /secrets
+# RUN python3 create_secret ${SCEWL_ID} generate_key
 
 ##############################

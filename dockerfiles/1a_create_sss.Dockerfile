@@ -8,30 +8,19 @@ FROM ubuntu:focal
 
 # Add environment customizations here
 # NOTE: do this first so Docker can used cached containers to skip reinstalling everything
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y python3
+# RUN apt-get update && apt-get upgrade -y && \
+#     apt-get install -y python3
 
 # setup the environment
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y python3-pip
-RUN pip3 install rsa
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y python3 python3-pip && \
+    pip3 install rsa
 
 # add any deployment-wide secrets here
 RUN mkdir /secrets
 
-# add rsa c in secrets folder
-ADD rsa /secrets/rsa
-WORKDIR /secrets/rsa
-RUN make
-RUN ./keygen
-RUN mv privateKey.txt /secrets/rsa/sss_privateKey.txt
-RUN mv publicKey.txt /secrets/rsa/sss_publicKey.txt
-#RUN rm privateKey.txt publicKey.txt
-RUN mv publicKey /secrets/rsa/sss_publicKey
-RUN mv privateKey /secrets/rsa/sss_privateKey
-
 ##############################
-RUN touch /secrets/provisoned_list
+# RUN touch /secrets/provisoned_list
 ADD create_secret.py /secrets/create_secret
 
 # map in SSS
@@ -41,3 +30,13 @@ ADD create_secret.py /secrets/create_secret
 #       (e.g. only mapping in the files you need for the SSS rather than the entire repo)
 ADD sss.py /sss
 
+# add rsa c in secrets folder
+ADD rsa /secrets/rsa
+WORKDIR /secrets/rsa
+RUN make && \
+    ./keygen && \
+    mv privateKey.txt /secrets/rsa/sss_privateKey.txt && \
+    mv publicKey.txt /secrets/rsa/sss_publicKey.txt && \
+    mv publicKey /secrets/rsa/sss_publicKey && \
+    mv privateKey /secrets/rsa/sss_privateKey && \
+    touch /secrets/provisoned_list

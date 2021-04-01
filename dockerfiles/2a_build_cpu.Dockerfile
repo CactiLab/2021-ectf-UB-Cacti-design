@@ -24,5 +24,5 @@ RUN make SCEWL_ID=${SCEWL_ID}
 ADD seds/common /common
 ADD seds/${SED} /sed
 WORKDIR /sed
-RUN make SED=${SED} SCEWL_ID=${SCEWL_ID} ${CUSTOM}
-RUN mv /sed/main /cpu
+RUN make SED=${SED} SCEWL_ID=${SCEWL_ID} ${CUSTOM} && \
+    mv /sed/main /cpu

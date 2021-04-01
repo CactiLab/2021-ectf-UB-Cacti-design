@@ -23,7 +23,7 @@
 #define SCEWL_MAX_DATA_SZ 0x4000             //max data size
 
 // change this value when want change max SEDs
-#define max_sequenced_SEDS 29
+#define max_sequenced_SEDS 30
 
 // type of a SCEWL ID
 typedef uint16_t scewl_id_t;

@@ -28,13 +28,10 @@ broadcast_sequence_num_t g_broadcast_rcv[max_sequenced_SEDS];
 
 uint32_t g_broadcast_send_sequence = 0;
 
-rsa_sk *own_sk = &private_key;
-
 uint32_t sysTimer = 0;
 
 // an array to store all provisoned sed's public key
 scewl_pub_t g_scewl_pk[SCEWL_PK_NUM];
-DTYPE g_own_pk_sig[RSA_BLOCK / 2];
 
 void SysTick_Handler(void)
 {
@@ -182,7 +179,7 @@ void send_own_pk(scewl_id_t tgt_id)
   scewl_update_pk.magicP = 'P';
   scewl_update_pk.magicK = 'K';
   memcpy(&scewl_update_pk.pk, &public_key, sizeof(rsa_pk));
-  memcpy(&scewl_update_pk.sig, g_own_pk_sig, RSA_BLOCK);
+  // memcpy(&scewl_update_pk.sig, g_own_pk_sig, RSA_BLOCK);
 
   // #ifdef DEBUG_PK_TEST
   //   send_str("send_own_pk:\n");
@@ -200,14 +197,14 @@ int set_tgt_pk(scewl_id_t src_id, scewl_update_pk_t *scewl_update_pk)
     {
       if (g_scewl_pk[i].flag == 0)
       {
-        if (check_signed_pk(scewl_update_pk) < 0)
-        {
-#ifdef DEBUG_PK_TEST
-          send_str("set_tgt_pk: wrong pk!\n");
-          send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-#endif
-          return SCEWL_ERR;
-        }
+//         if (check_signed_pk(scewl_update_pk) < 0)
+//         {
+// #ifdef DEBUG_PK_TEST
+//           send_str("set_tgt_pk: wrong pk!\n");
+//           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
+// #endif
+//           return SCEWL_ERR;
+//         }
         memcpy(&g_scewl_pk[i].pk, &scewl_update_pk->pk, sizeof(rsa_pk));
         g_scewl_pk[i].scewl_id = src_id;
         g_scewl_pk[i].flag = 1;
@@ -320,7 +317,7 @@ int key_enc(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
   case RSA_SIGN:
   case RSA_REQ_PK:
     /* sign */
-    rsa_decrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, own_sk);
+    rsa_decrypt(cipher, MAX_MODULUS_LENGTH, msg, MAX_MODULUS_LENGTH, &private_key);
     break;
   case RSA_ENC:
   case RSA_SEND_PK:
@@ -382,9 +379,9 @@ int key_dec(scewl_id_t src_id, scewl_id_t tgt_id, scewl_msg_t *scewl_msg, uint8_
     send_str("aes_key before decryption...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)scewl_msg->aes_key);
     send_str("sk->d1...\n");
-    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)own_sk->d1);
+    send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 32, (char *)&private_key->d1);
 #endif
-    rsa_decrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, own_sk);
+    rsa_decrypt(decipher, MAX_MODULUS_LENGTH, (DTYPE *)scewl_msg->aes_key, MAX_MODULUS_LENGTH, &private_key);
 #ifdef DEBUG_KEY_CRYPTO
     send_str("aes_key after decryption...\n");
     send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, MAX_MODULUS_LENGTH * 2, (char *)decipher);
@@ -814,7 +811,7 @@ int send_sign_SSS_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16
   memcpy(message, (char *)&sss_crypto_msg, RSA_BLOCK);
 
   // send_str("sign sss_msg...\n");
-  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, message, MAX_MODULUS_LENGTH, own_sk);
+  rsa_decrypt(cipher, MAX_MODULUS_LENGTH, message, MAX_MODULUS_LENGTH, &private_key);
 
   memcpy((char *)&sss_crypto_msg, cipher, RSA_BLOCK);
 
@@ -1073,7 +1070,7 @@ int sss_register()
   }
 
   // read the signature of its own pk
-  memcpy(g_own_pk_sig, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * totalSEDs, RSA_BLOCK);
+  // memcpy(g_own_pk_sig, (char *)&buf + 5 + (sizeof(rsa_pk) + 2) * totalSEDs, RSA_BLOCK);
 
   // #ifdef DEBUG_PK_TEST
   //   send_str("own pk signature\n");

@@ -43,14 +43,17 @@ COPY --from=sss /secrets/${SCEWL_ID}/key.h /sed/key.h
 # for testing, use the same key pairs
 #COPY --from=sss /secrets/10/key.h /sed/key.h   
 
-RUN make SCEWL_ID=${SCEWL_ID}
-
+RUN make SCEWL_ID=${SCEWL_ID} && \
+    rm /sed/key.h && \
+    mv /sed/gcc/controller.bin /controller && \
+    mv /sed/gcc/controller.axf /controller.elf    
+    
 # delete SCEWL key files
-RUN rm /sed/key.h
 
 # attached the key after the bin file, get the address of the key
-RUN mv /sed/gcc/controller.bin /controller
+# RUN mv /sed/gcc/controller.bin /controller && \
+#     mv /sed/gcc/controller.axf /controller.elf
 
 # NOTE: If you want to use the debugger with the scripts we provide, 
 #       the ELF file must be at /controller.elf
-RUN mv /sed/gcc/controller.axf /controller.elf
+# RUN mv /sed/gcc/controller.axf /controller.elf
