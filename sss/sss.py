@@ -16,7 +16,7 @@ import argparse
 import logging
 import os
 from typing import NamedTuple
-
+import datetime
 
 SSS_IP = 'localhost'
 SSS_ID = 1
@@ -30,7 +30,7 @@ current_registered_sed = []
 # mirroring scewl enum at scewl.c:4
 ALREADY, REG, DEREG = -1, 0, 1
 
-logging.basicConfig(filename= 'sss.log', filemode='w', level=logging.INFO)
+logging.basicConfig(filename= '/socks/sss.log', filemode='a', level=logging.INFO)
 
 Device = NamedTuple('Device', [('id', int), ('status', int), ('csock', socket.socket)])
 
@@ -55,7 +55,9 @@ class SSS:
         return rready if op == 'r' else wready
 
     def handle_transaction(self, csock: socket.SocketType):
-        print('\n\nIn function handle_transaction()')
+        ct = datetime.datetime.now()
+        print(str(ct) + '\n\nIn function handle_transaction()', flush = True)
+        #logging.info(f'\n\nIn function handle_transaction()')
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
@@ -67,48 +69,52 @@ class SSS:
             # check for closed connection
             if not recvd:
                 print('Connection Reset Error')
+                #logging.info(f'Connection Reset Error')
                 raise ConnectionResetError
-
-        print(f'Received msg: {repr(data)}')
-        #logging.info(f'Lenght of data: {len(data)}')
+        print(f'---Received msg: {repr(data)}', flush = True)
+        #logging.info(f'---Received msg: {repr(data)}')
+        ##logging.info(f'Lenght of data: {len(data)}')
         _, target_id, src_id, _ = struct.unpack('<HHHH', data[:8])
-        print(f'==={src_id}=== Target: {target_id}')
+        print(f'==={src_id}=== Target: {target_id}', flush = True)
         
         data = data[8:]
         cipher_file_name = "rsa/" + str(src_id) + "_cipher"
         try:
             cipher_file = open(cipher_file_name, "wb")
         except IOError:
-            print(f'==={src_id}=== Could not open Cipher file')
+            print(f'==={src_id}=== Could not open Cipher file', flush = True)
+            #logging.info(f'==={src_id}=== Could not open Cipher file')
             return
 
         #cipher_file = open("cipher", "wb")
         cipher_file.write(data)
         cipher_file.close()
-        #logging.info(f'source: {src_id}')
+        ##logging.info(f'source: {src_id}')
         auth_app_command = "./rsa/auth " + str(src_id)
 
-        #logging.info(f'Calling auth application')
-        #logging.info(f'auth command: {auth_app_command}')
+        ##logging.info(f'Calling auth application')
+        ##logging.info(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
-            print(f'==={src_id}=== Msg Decryption succeeds')
+            print(f'==={src_id}=== Msg Decryption succeeds', flush = True)
+            #logging.info(f'==={src_id}=== Msg Decryption succeeds')
         else:
-            print(f'==={src_id}=== Msg Decryption fails')
+            print(f'==={src_id}=== Msg Decryption fails', flush = True)
+            #logging.info(f'==={src_id}=== Msg Decryption fails')
             return
 
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
         try:
-            with open(decipher_file_name, mode='rb') as file:
+            with open(decipher_file_name, mode='r') as file:
                 decipher_data = file.read()
         except IOError:
-            print(f'==={src_id}=== Failed to open decipher file to read')
+            print(f'==={src_id}=== Failed to open decipher file to read', flush = True)
+            #logging.info(f'==={src_id}=== Failed to open decipher file to read')
             return
         
         d_data = struct.unpack('<32H', decipher_data)
 
         #print(f'Received buffer length: {len(decipher_data)}')
-
         os.remove(cipher_file_name)
         os.remove(decipher_file_name)
 
@@ -119,20 +125,24 @@ class SSS:
         op = d_op
 
         if d_target_id == target_id and d_src_id == src_id:
-            print(f'==={src_id}=== IDs match')
+            print(f'==={src_id}=== IDs match', flush = True)
+            #logging.info(f'==={src_id}=== IDs match')
             legit_SED_flag = True
             dev_id = d_dev_id
         else:
-            print(f'==={src_id}=== Invalid Registration for SED')
+            print(f'==={src_id}=== Invalid Registration for SED', flush = True)
+            #logging.info(f'==={src_id}=== Invalid Registration for SED')
             dev_id = target_id
             return
             #resp_op = ALREADY
         
         if dev_id in provisionedList:
             provisioned_flag = True
-            print(f'==={dev_id}=== Belongs to provisioned list')
+            print(f'==={dev_id}=== Belongs to provisioned list', flush = True)
+            #logging.info(f'==={dev_id}=== Belongs to provisioned list')
         else:
-            print(f'==={dev_id}=== Does not belog to provisioned list')
+            print(f'==={dev_id}=== Does not belog to provisioned list', flush = True)
+            #logging.info(f'==={dev_id}=== Does not belog to provisioned list')
             return
         
         
@@ -142,37 +152,41 @@ class SSS:
 
             if dev_id in self.devs and self.devs[dev_id] == op:
                 resp_op = ALREADY
-                print(f'==={src_id}=== already {"Registered" if op == REG else "Deregistered"}')
+                print(f'==={src_id}=== already {"Registered" if op == REG else "Deregistered"}', flush = True)
+                #logging.info(f'---==={src_id}=== already {"Registered" if op == REG else "Deregistered"}')
             # record transaction
             else:
                 self.devs[dev_id] = Device(dev_id, op, csock)
                 resp_op = op
-                print(f'==={dev_id}==={"Registered" if op == REG else "Deregistered"}')
+                print(f'==={dev_id}==={"Registered" if op == REG else "Deregistered"}', flush = True)
+                #logging.info(f'==={dev_id}==={"Registered" if op == REG else "Deregistered"}')
 
             if (op == 0):
                 #registered_sed_list = list(self.devs.keys())
                 #print(f'==={src_id}=== Registered List IDs{registered_sed_list}')
                 already_registered_sed = len(current_registered_sed)
-                print('===' + str(src_id) + '=== Registration Operation')
-                #logging.info(f'=== {src_id}=== Registration Operation')
-                print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed))
-                print(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
+                print('===' + str(src_id) + '=== Registration Operation', flush = True)
+                #logging.info(f'---=== {src_id}=== Registration Operation')
+                print('===' + str(src_id) + '=== Total previously registered SED:' + str(already_registered_sed), flush = True)
+                print(f'==={src_id}=== Previously registered IDs {current_registered_sed}', flush = True)
+                #logging.info(f'==={str(src_id)}=== Total previously registered SED:{str(already_registered_sed)}')
                 #logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
-                #if already_registered_sed > 5:
-                    #already_registered_sed = 5
+                ##logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
+
                 
-                print('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
-                print(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
-                #logging.info('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed))
+                print('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed), flush = True)
+                print(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}', flush = True)
+                #logging.info(f'==={str(src_id)}=== Responsing total registered SED PKs: {str(already_registered_sed)}')
                 #logging.info(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}')
                 other_sed_pub = prepare_response(current_registered_sed, already_registered_sed)
                 
                 own_pk_signature_by_sss = get_own_public_key_signature_from_sss(src_id) #226 bytes of signed own pK
                 if own_pk_signature_by_sss == b'':
-                    print('===' + str(src_id) + '=== Get Own  Public key signature fails')
+                    print('===' + str(src_id) + '=== Get Own  Public key signature fails', flush = True)
+                    #logging.info(f'=== {str(src_id)} === Get Own  Public key signature fails')
                     return
-                logging.info(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
-                print(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
+                ##logging.info(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
+                #print(f'==={src_id}=== own public key signature:\n {repr(own_pk_signature_by_sss)}')
                 #message_length = len(other_sed_pub) + 5
                 message_length = len(other_sed_pub) + len(own_pk_signature_by_sss) + 5
                 resp = struct.pack('<2sHHHHhB', b'SC', dev_id, SSS_ID, message_length, dev_id, resp_op, already_registered_sed)
@@ -180,15 +194,18 @@ class SSS:
                 #resp = resp + other_sed_pub
                 resp = resp + other_sed_pub + own_pk_signature_by_sss
                 current_registered_sed.append(dev_id)
-                #logging.info(f'Response : {resp}')
+                ##logging.info(f'Response : {resp}')
             else:
-                print('===' + str(src_id) + '=== De-registration Operation')
-                #logging.info(f'==={src_id}=== De-registration Operation')
+                print('===' + str(src_id) + '=== De-registration Operation', flush = True)
+                #logging.info(f'---==={src_id}=== De-registration Operation')
                 resp = struct.pack('<2sHHHHh', b'SC', dev_id, SSS_ID, 4, dev_id, resp_op)
                 current_registered_sed.remove(dev_id)
+                #logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
             # send response
-            print(f'Sending response {repr(data)}')
-            print(f'-----------DONE for {dev_id}------')
+            print(f'Sending response {repr(data)}', flush = True)
+            #logging.info(f'Sending response {repr(data)}')
+            print(f'-----------DONE for {dev_id}------', flush = True)
+            #logging.info(f'--------------DONE for {dev_id}------')
             csock.send(resp)
 
     def start(self):
@@ -247,14 +264,15 @@ def preapred_provisioned_list():
     try:
         provisionedFile = open("../provisoned_list", "r")
     except IOError:
-        print(f'Failed to Open Provisioned LIST file')
+        print(f'Failed to Open Provisioned LIST file', flush = True)
+        logging.info(f'Failed to Open Provisioned LIST file')
         return
     provisionedSEDLines = provisionedFile.readlines()
     for line in provisionedSEDLines:
         line.replace("\n","")
         provisionedList.append(int(line))
-    print(f'Provisioned SEDS: {provisionedList}')
-    #logging.info(f'Provisioned SEDS: {provisionedList}')
+    print(f'Provisioned SEDS: {provisionedList}', flush = True)
+    logging.info(f'Provisioned SEDS: {provisionedList}')
     provisionedFile.close()
 
 #For each SED there will be public key file in SSS container with the name SED_ID_publickey in /rsa folder here we just read the file
@@ -265,7 +283,8 @@ def get_publicKey(registed_SED_id):
     try:
         pub_key_file_data = open(public_key_file_path,"rb").read()
     except IOError:
-        print ("Could not open the public key file for :" + str(registed_SED_id))
+        print ("Could not open the public key file for :" + str(registed_SED_id), flush = True)
+        logging.info (f'Could not open the public key file for : {str(registed_SED_id)}')
         return
     return pub_key_file_data
 
@@ -289,9 +308,11 @@ def prepare_response(registered_sed_list, already_registered_sed):
 def get_own_public_key_signature_from_sss(src_id):
     sign_app_command = "./rsa/sign " + str(src_id)
     if not os.system(sign_app_command):
-        print(f'==={src_id}=== signature own public key by SSS success')
+        print(f'==={src_id}=== signature own public key by SSS success', flush = True)
+        logging.info(f'==={src_id}=== signature own public key by SSS success')
     else:
-        print(f'==={src_id}=== signature own public key by SSS fails')
+        print(f'==={src_id}=== signature own public key by SSS fails', flush = True)
+        logging.info(f'==={src_id}=== signature own public key by SSS fails')
         return b''
 
     signed_pk_file_name = "rsa/" + str(src_id) + "_publicKey_signed"
@@ -299,7 +320,8 @@ def get_own_public_key_signature_from_sss(src_id):
         with open(signed_pk_file_name, mode = 'rb') as file:
             signed_pk_data = file.read()
     except IOError:
-        print(f'==={src_id}=== Failed to open signed PK file to read')
+        print(f'==={src_id}=== Failed to open signed PK file to read', flush = True)
+        logging.info(f'==={src_id}=== Failed to open signed PK file to read')
         return b''
     
     return signed_pk_data

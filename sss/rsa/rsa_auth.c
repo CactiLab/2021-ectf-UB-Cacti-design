@@ -76,13 +76,14 @@ int main(int argc, char *argv[])
     fread(cipher, sizeof(cipher), 1, fp);
     fclose(fp);
 
-    // printf("%s: Decryption starts...\n", argv[1]);
+    //printf("%s: Decryption starts...\n", argv[1]);
     rsa_encrypt(plaintext, MAX_MODULUS_LENGTH, cipher, MAX_MODULUS_LENGTH, &pk);
-    // printf("%s: Decryption done...\n\n", argv[1]);
+    printf("====Auth===== %s: Decryption done...\n\n", argv[1]);
+    fflush(stdout);
 
     //write plaintext into file
     hex_to_string(plainmsg, plaintext);
-    fp = fopen(decipher_file, "wb");
+    fp = fopen(decipher_file, "w");
 
     if (fp == NULL)
     {
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
     }
     fwrite(plainmsg, 1, MAX_MODULUS_LENGTH * 2, fp);
     fclose(fp);
-
+    printf("====Auth===== %s: successful...\n\n", argv[1]);
     return 0;
 }
 
