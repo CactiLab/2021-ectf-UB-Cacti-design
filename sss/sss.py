@@ -30,7 +30,7 @@ current_registered_sed = []
 # mirroring scewl enum at scewl.c:4
 ALREADY, REG, DEREG = -1, 0, 1
 
-logging.basicConfig(filename= '/socks/sss.log', filemode='a', level=logging.INFO)
+logging.basicConfig(filename= '/socks/sss.log', filemode='w', level=logging.INFO)
 
 Device = NamedTuple('Device', [('id', int), ('status', int), ('csock', socket.socket)])
 
@@ -56,8 +56,8 @@ class SSS:
 
     def handle_transaction(self, csock: socket.SocketType):
         ct = datetime.datetime.now()
-        print(str(ct) + '\n\nIn function handle_transaction()', flush = True)
-        #logging.info(f'\n\nIn function handle_transaction()')
+        print('\n\n' + str(ct) + 'In function handle_transaction()', flush = True)
+        #logging.info(f'{ct}\n\nIn function handle_transaction()')
         provisioned_flag = False
         legit_SED_flag = False
         data = b''
@@ -68,7 +68,7 @@ class SSS:
             data += recvd
             # check for closed connection
             if not recvd:
-                print('Connection Reset Error')
+                print('Connection Reset Error', flush = True)
                 #logging.info(f'Connection Reset Error')
                 raise ConnectionResetError
         print(f'---Received msg: {repr(data)}', flush = True)
@@ -81,8 +81,8 @@ class SSS:
         cipher_file_name = "rsa/" + str(src_id) + "_cipher"
         try:
             cipher_file = open(cipher_file_name, "wb")
-        except IOError:
-            print(f'==={src_id}=== Could not open Cipher file', flush = True)
+        except:
+            print(f'==={src_id}=== Could not open Cipher file: {cipher_file_name}', flush = True)
             #logging.info(f'==={src_id}=== Could not open Cipher file')
             return
 
@@ -92,8 +92,6 @@ class SSS:
         ##logging.info(f'source: {src_id}')
         auth_app_command = "./rsa/auth " + str(src_id)
 
-        ##logging.info(f'Calling auth application')
-        ##logging.info(f'auth command: {auth_app_command}')
         if not os.system(auth_app_command):
             print(f'==={src_id}=== Msg Decryption succeeds', flush = True)
             #logging.info(f'==={src_id}=== Msg Decryption succeeds')
@@ -105,11 +103,11 @@ class SSS:
         #decipher_data = open("rsa/decipher", "rb").read()
         decipher_file_name = "rsa/" + str(src_id) + "_decipher"
         try:
-            with open(decipher_file_name, mode='r') as file:
+            with open(decipher_file_name, mode='rb') as file:
                 decipher_data = file.read()
-        except IOError:
-            print(f'==={src_id}=== Failed to open decipher file to read', flush = True)
-            #logging.info(f'==={src_id}=== Failed to open decipher file to read')
+        except:
+            print(f'==={src_id}=== Failed to open decipher file to read: {decipher_file_name}', flush = True)
+            #logging.info(f'==={src_id}=== Failed to open decipher file to read {decipher_file_name}')
             return
         
         d_data = struct.unpack('<32H', decipher_data)
@@ -172,7 +170,6 @@ class SSS:
                 #logging.info(f'==={str(src_id)}=== Total previously registered SED:{str(already_registered_sed)}')
                 #logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
                 ##logging.info(f'==={src_id}=== Previously registered IDs {current_registered_sed}')
-
                 
                 print('===' + str(src_id) + '=== Responsing total registered SED PKs:' + str(already_registered_sed), flush = True)
                 print(f'==={src_id}=== Sending back registered PK for IDs{current_registered_sed[:already_registered_sed]}', flush = True)
@@ -263,28 +260,27 @@ def parse_args():
 def preapred_provisioned_list():
     try:
         provisionedFile = open("../provisoned_list", "r")
-    except IOError:
-        print(f'Failed to Open Provisioned LIST file', flush = True)
-        logging.info(f'Failed to Open Provisioned LIST file')
+    except:
+        print(f'Failed to Open Provisioned LIST file: ../provisoned_list', flush = True)
+        #logging.info(f'Failed to Open Provisioned LIST file')
         return
     provisionedSEDLines = provisionedFile.readlines()
     for line in provisionedSEDLines:
         line.replace("\n","")
         provisionedList.append(int(line))
     print(f'Provisioned SEDS: {provisionedList}', flush = True)
-    logging.info(f'Provisioned SEDS: {provisionedList}')
+    #logging.info(f'Provisioned SEDS: {provisionedList}')
     provisionedFile.close()
 
 #For each SED there will be public key file in SSS container with the name SED_ID_publickey in /rsa folder here we just read the file
 #and return the values to the caller
 def get_publicKey(registed_SED_id):
     public_key_file_path = "rsa/" + str(registed_SED_id) + "_publicKey"
-    #logging.info(f'public_key_file_path {public_key_file_path}')
     try:
         pub_key_file_data = open(public_key_file_path,"rb").read()
-    except IOError:
-        print ("Could not open the public key file for :" + str(registed_SED_id), flush = True)
-        logging.info (f'Could not open the public key file for : {str(registed_SED_id)}')
+    except:
+        print ("Could not open the public key file for :" + str(registed_SED_id) + public_key_file_path, flush = True)
+        #logging.info (f'Could not open the public key file for : {str(registed_SED_id)}')
         return
     return pub_key_file_data
 
@@ -296,7 +292,6 @@ def prepare_response(registered_sed_list, already_registered_sed):
     for registered_sed_id in registered_sed_list:
         resp = resp + struct.pack('<H', registered_sed_id)
         publicKey_data = get_publicKey(registered_sed_id)
-        #logging.info(f'Public key of {registered_sed_id} :\n {publicKey_data}')
         resp = resp + publicKey_data
         i = i + 1
         if i >= already_registered_sed:
@@ -309,19 +304,19 @@ def get_own_public_key_signature_from_sss(src_id):
     sign_app_command = "./rsa/sign " + str(src_id)
     if not os.system(sign_app_command):
         print(f'==={src_id}=== signature own public key by SSS success', flush = True)
-        logging.info(f'==={src_id}=== signature own public key by SSS success')
+        #logging.info(f'==={src_id}=== signature own public key by SSS success')
     else:
         print(f'==={src_id}=== signature own public key by SSS fails', flush = True)
-        logging.info(f'==={src_id}=== signature own public key by SSS fails')
+        #logging.info(f'==={src_id}=== signature own public key by SSS fails')
         return b''
 
     signed_pk_file_name = "rsa/" + str(src_id) + "_publicKey_signed"
     try:
         with open(signed_pk_file_name, mode = 'rb') as file:
             signed_pk_data = file.read()
-    except IOError:
-        print(f'==={src_id}=== Failed to open signed PK file to read', flush = True)
-        logging.info(f'==={src_id}=== Failed to open signed PK file to read')
+    except:
+        print(f'==={src_id}=== Failed to open signed PK file to read: {signed_pk_file_name}', flush = True)
+        #logging.info(f'==={src_id}=== Failed to open signed PK file to read  {signed_pk_file_name}')
         return b''
     
     return signed_pk_data

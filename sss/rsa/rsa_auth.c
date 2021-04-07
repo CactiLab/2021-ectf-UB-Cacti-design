@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 
     //write plaintext into file
     hex_to_string(plainmsg, plaintext);
-    fp = fopen(decipher_file, "w");
+    fp = fopen(decipher_file, "wb");
 
     if (fp == NULL)
     {
