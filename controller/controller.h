@@ -144,10 +144,11 @@ typedef struct __attribute__((packed))
 
 typedef struct __attribute__((packed)) // 162+2+2+2=168
 {
-  uint8_t flag;
+  unsigned char flag;
   scewl_id_t scewl_id;
   rsa_pk pk;
-  uint8_t padding[3];
+  unsigned char req_num;
+  uint8_t padding[2];
 } scewl_pub_t;
 
 typedef struct __attribute__((packed))

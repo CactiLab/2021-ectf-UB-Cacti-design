@@ -19,7 +19,7 @@
 #include "aes-gcm.h"
 
 // message buffer
-char buf[SCEWL_MAX_CRYPTO_DATA_SZ];
+char buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
 
 //sequence number structure
 sequence_num_t g_messeage_sq[max_sequenced_SEDS];
@@ -124,6 +124,39 @@ int check_scewl_pk(scewl_id_t tgt_id)
   return -1;
 }
 
+int check_scewl_pk_req_num(scewl_id_t tgt_id)
+{
+  for (int i = 0; i < SCEWL_PK_NUM; i++)
+  {
+    if (g_scewl_pk[i].scewl_id == tgt_id)
+    {
+      return ++g_scewl_pk[i].req_num;
+    }
+    else if (g_scewl_pk[i].flag == 0)
+    {
+      g_scewl_pk[i].scewl_id == tgt_id;
+      g_scewl_pk[i].req_num = 0;
+      return 0;
+    }
+  }
+  return -1;
+}
+
+int clear_scewl_pk(scewl_id_t tgt_id)
+{
+  for (int i = 0; i < SCEWL_PK_NUM; i++)
+  {
+    if (g_scewl_pk[i].scewl_id == tgt_id)
+    {
+      g_scewl_pk[i].scewl_id == 0;
+      g_scewl_pk[i].flag == 0;
+      g_scewl_pk[i].req_num = 0;
+      return 0;
+    }
+  }
+  return -1;
+}
+
 int check_signed_pk(scewl_update_pk_t *scew_update_pk)
 {
   // unsigned char output[RSA_BLOCK] = {0};
@@ -149,25 +182,6 @@ int check_signed_pk(scewl_update_pk_t *scew_update_pk)
   // SHA_Simple((unsigned char *)&(scew_update_pk->pk), sizeof(rsa_pk), (unsigned char *)&(scew_update_pk->sig));
   MD5Calc((const unsigned char *)&(scew_update_pk->pk), sizeof(rsa_pk), (unsigned char *)&(scew_update_pk->sig));
 
-  // #ifdef DEBUG_PK_TEST
-  //   send_str("check_signed_pk: SHA1 :\n");
-  //   send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, RSA_BLOCK, (char *)(scew_update_pk->sig));
-  // #endif
-
-//   if (BN_cmp(decipher, MAX_MODULUS_LENGTH, (DTYPE *)&(scew_update_pk->sig), MAX_MODULUS_LENGTH) == 0)
-//   {
-// #ifdef DEBUG_PK_TEST
-//     send_str("check_signed_pk: authentication success\n");
-// #endif
-//     return SCEWL_OK;
-//   }
-//   else
-//   {
-// #ifdef DEBUG_PK_TEST
-//     send_str("check_signed_pk: authentication failure\n");
-// #endif
-//     return SCEWL_ERR;
-//   }
   return SCEWL_OK;
 }
 
@@ -197,14 +211,6 @@ int set_tgt_pk(scewl_id_t src_id, scewl_update_pk_t *scewl_update_pk)
     {
       if (g_scewl_pk[i].flag == 0)
       {
-//         if (check_signed_pk(scewl_update_pk) < 0)
-//         {
-// #ifdef DEBUG_PK_TEST
-//           send_str("set_tgt_pk: wrong pk!\n");
-//           send_msg(RAD_INTF, SCEWL_ID, SCEWL_FAA_ID, 2, (char *)&src_id);
-// #endif
-//           return SCEWL_ERR;
-//         }
         memcpy(&g_scewl_pk[i].pk, &scewl_update_pk->pk, sizeof(rsa_pk));
         g_scewl_pk[i].scewl_id = src_id;
         g_scewl_pk[i].flag = 1;
@@ -226,6 +232,12 @@ int set_tgt_pk(scewl_id_t src_id, scewl_update_pk_t *scewl_update_pk)
 int send_get_scewl_pk_msg(scewl_id_t tgt_id)
 {
   char *get_pk = "NO";
+  unsigned char req_num = check_scewl_pk_req_num(tgt_id);
+
+  if (req_num < 0 || req_num > 3)
+  {
+    return SCEWL_ERR;
+  }
 
   send_msg(RAD_INTF, SCEWL_ID, tgt_id, strlen(get_pk), get_pk);
 
@@ -237,17 +249,18 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
   scewl_id_t tmp_src, tmp_tgt;
   scewl_update_pk_t scewl_update_pk;
 
-  int len = 0, count = 0;
+  int len = 0, count_in = 0, count_pk = 0;
 
   char tmp_buf[SCEWL_MAX_CRYPTO_DATA_SZ] = {0};
   memset(&scewl_update_pk, 0, sizeof(scewl_update_pk_t));
 
-  while (count < 3)
+  while ((count_in < 10) && (count_pk < 3))
   {
     if (intf_avail(RAD_INTF))
     {
       // Read message from antenna
       len = read_msg(RAD_INTF, tmp_buf, &tmp_src, &tmp_tgt, sizeof(tmp_buf), 1);
+      count_in++;
 
       if (tmp_src != SCEWL_ID)
       { // ignore our own outgoing messages
@@ -257,12 +270,11 @@ int send_get_scewl_pk_msg(scewl_id_t tgt_id)
           // receive unicast message
           if (tmp_src == tgt_id)
           {
-            count++;
+            count_pk++;
             if ((tmp_buf[0] == 'P') && (tmp_buf[1] == 'K'))
             {
               if (set_tgt_pk(tgt_id, tmp_buf) >= 0)
               {
-                count = 10;
                 return SCEWL_NO_MSG;
               }
             }
@@ -779,6 +791,7 @@ int send_auth_msg(intf_t *intf, scewl_id_t src_id, scewl_id_t tgt_id, uint16_t l
   intf_write(intf, (char *)&hdr, sizeof(scewl_hdr_t));
 
   // write body
+
   intf_write(intf, (char *)&output.crypto_msg.body, hdr.len);
   return SCEWL_OK;
 }
