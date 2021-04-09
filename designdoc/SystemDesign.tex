@@ -263,13 +263,13 @@ Following the 8 bytes header is the SCEWL message body that including:
 \end{figure}
 
   \subsection{Prevent Replay Attack}
-  For communication between the SEDs, a sequence number of 4 bytes is added in front of the message body. Each SED maintains a pair of sequence number table in memory of other SEDs. Two sequence numbers represent bidirectional transmission between two SEDs. To prevent the replay attack, receiver SED needs to cross-check between the received value from the message and the value from the table.
+  For communication between the SEDs, a sequence number of 4 bytes is added in front of the message body. Each SED maintains a pair of sequence number table in memory of other SEDs. Two sequence numbers represent bidirectional transmission between two SEDs. In case of broadcast messages each SED maintains a sending sequence number and receiving sequence numbers for each other SEDS. To prevent the replay attack, receiver SED needs to cross-check between the received value from the message and the value from the table.
  
 Explanation:
   \begin{itemize}
   \item Suppose there are 5 ($a, b, c, d, e$) SEDs in the system.
-  \item Each SED maintains a pair of sequence number table of other SEDs with the initial value of zero.
-  \item  Example: At the beginning sequence table for SED $b$:
+  \item For unicast messages, each SED maintains a pair of sequence number table of other SEDs with the initial value of zero. And for broadcast messages, each SED maintains a sending message count and a number of receiving message table for each SED.
+  \item  Example: At the beginning for targeted message, sequence table for SED $b$:
 
     \begin{center}
   \begin{tabular}{ |c|c|c| } 
@@ -283,7 +283,7 @@ Explanation:
 	 \hline
 \end{tabular}
 \end{center}
-Here each row represents a pair of sequence number.
+Here each row represents a pair of sequence number for unicast messages.
 Row $a$ here signifies the sequence number for communication between the SED pair $(a,b)$. $SQ\_send$ is number of communications from SED $b$  to SED $a$. $SQ\_receive$ denotes number of messages that $b$ received from $a$. SED $a$ will have the same values in opposite position.
 
   \item Suppose SED$_a$ communicates with the SED $b$. SED $a$ gets the 
@@ -329,6 +329,21 @@ Row $a$ here signifies the sequence number for communication between the SED pai
 	 \hline
 \end{tabular}
 \end{center}
+\item In case of broadcast messages, the initial receiving sequence number table for SED $b$:
+   \begin{center}
+  \begin{tabular}{ |c|c| } 
+    \hline
+  \textbf{SED ID} & \textbf{SQ\_broadcast\_receive}\\
+ 	\hline \hline
+ 	a & 0\\ 
+	c & 0 \\ 
+ 	d & 0 \\ 
+ 	e & 0 \\ 
+	 \hline
+\end{tabular}
+\end{center}
+Whenever SED $b$ receives a broadcast, it simply increments the received sequence number of the corresponding SED in the table by one. SEDs conclude a received message as a replay attack if the received sequence number is not greater than the stored number for that SED in the table.
+In addition to this, each SED maintains a global sending broadcast number. This number is updated after each broadcast send.
     \end{itemize}
 
 
